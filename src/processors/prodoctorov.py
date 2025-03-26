@@ -29,28 +29,32 @@ def clean_message_text(text):
     """
     Очищает текст:
       - Заменяет неразрывные пробелы на обычные
-      - Заменяет последовательности пробельных символов (пробел, \n, \t) одним пробелом
-      - Убирает лишние пробелы по краям
+      - Удаляет лишние пробелы по краям каждой строки
+      - Разбивает текст по символу новой строки, сохраняя структуру блоков
     """
+    # Заменяем неразрывные пробелы
     text = text.replace("\xa0", " ")
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
+    # Разбиваем текст по \n, очищаем каждую строку и отбрасываем пустые строки
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    return "\n".join(lines)
 
 
 def prodoctorov_parse_email(html_content):
+    print(html_content)
     """
     Принимает HTML-содержимое письма, извлекает:
       - name (значение после метки "Пациент")
       - phone (значение после метки "Контактный телефон", приводится к формату)
-      - data.message - очищенный от HTML текст всего письма
+      - data.message - очищенный от HTML текст всего письма, разбитый на строки (\n)
       - data.url - ссылка на "Личный кабинет"
       - source - жестко задан "prodoctorov"
     """
+    # Парсим HTML-контент
     soup = BeautifulSoup(html_content, "html.parser")
 
-    # Получаем исходный текст с разделителями
+    # Извлекаем текст, разделяя элементы символом новой строки
     raw_text = soup.get_text(separator="\n")
-    # Очищаем текст от лишних символов
+    # Очищаем текст от лишних пробельных символов, оставляя структуру с \n
     cleaned_text = clean_message_text(raw_text)
 
     # Для поиска данных разбиваем исходный текст на строки
@@ -60,7 +64,7 @@ def prodoctorov_parse_email(html_content):
     phone = format_phone(phone_raw) if phone_raw else ""
 
     # Извлекаем ссылку "Личный кабинет"
-    login_link_tag = soup.find("a", string=lambda s: s and "Личный кабинет" in s)
+    login_link_tag = soup.find("a", string=lambda s: s and "кабинет" in s.lower())
     login_link = login_link_tag.get("href") if login_link_tag else ""
 
     result = {
@@ -69,4 +73,5 @@ def prodoctorov_parse_email(html_content):
         "data": {"message": cleaned_text, "url": login_link},
         "source": "prodoctorov",
     }
+    print(result)
     return result
