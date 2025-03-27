@@ -18,6 +18,8 @@ mail_settings = MailCheckSettings(
     imap_server=IMAP_SERVER, imap_port=IMAP_PORT, username=USERNAME, password=PASSWORD
 )
 
+print(mail_settings)
+
 
 ### CRM INTEGRATION SECTION
 
