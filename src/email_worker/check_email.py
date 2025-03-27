@@ -10,14 +10,16 @@ from src.query_worker.schema import QueryRules, HTTPMethod
 # Асинхронная функция для отправки HTTP-запроса
 
 
-def apply_rule_action(rule, email_body: str):
+def apply_rule_action(rule, email_body: str, email_subject: str, email_sender: str):
     """
     Обработка действия правила:
       - Передаёт тело письма через процессор (если он задан)
       - Выполняет HTTP-запрос с обработанным телом
     """
     processed_body = (
-        rule.action.processor(email_body) if rule.action.processor else email_body
+        rule.action.processor(email_body, email_subject, email_sender)
+        if rule.action.processor
+        else email_body
     )
     print(
         f"Выполняется запрос {rule.action.type} к {rule.action.url} с обработанным телом."
@@ -82,7 +84,7 @@ def check_mail(settings: MailCheckSettings, rules: QueryRules):
                 )
                 if subject_match and sender_match:
                     print("Письмо соответствует правилу. Выполняем действие:")
-                    apply_rule_action(rule, body)
+                    apply_rule_action(rule, body, subject, sender)
 
             # Помечаем письмо как прочитанное
             client.mark_as_seen(mail_id)

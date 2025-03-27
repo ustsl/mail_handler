@@ -47,7 +47,7 @@ def clean_message_text(text):
     return "\n".join(lines)
 
 
-def prodoctorov_parse_email(html_content):
+def prodoctorov_parse_email(html_content, subject, sender):
     """
     Принимает HTML-содержимое письма, извлекает:
       - name (значение после метки "Пациент")
@@ -83,7 +83,12 @@ def prodoctorov_parse_email(html_content):
     result = {
         "name": name or "",
         "phone": phone,
-        "data": {"message": cleaned_text, "url": login_link},
+        "data": {
+            "message": cleaned_text,
+            "url": login_link,
+            "additionalInfo": subject,
+        },
         "source": "prodoctorov",
     }
+
     return result
