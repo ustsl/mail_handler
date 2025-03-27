@@ -30,7 +30,7 @@ def clean_message_text(text):
     Очищает текст:
       - Заменяет неразрывные пробелы на обычные
       - Удаляет лишние пробелы по краям каждой строки
-      - Разбивает текст по символу новой строки, сохраняя структуру блоков
+      - Сохраняет структуру блоков, разделяя строки символом новой строки
     """
     # Заменяем неразрывные пробелы
     text = text.replace("\xa0", " ")
@@ -40,32 +40,37 @@ def clean_message_text(text):
 
 
 def prodoctorov_parse_email(html_content):
-    print(html_content)
     """
     Принимает HTML-содержимое письма, извлекает:
       - name (значение после метки "Пациент")
       - phone (значение после метки "Контактный телефон", приводится к формату)
-      - data.message - очищенный от HTML текст всего письма, разбитый на строки (\n)
-      - data.url - ссылка на "Личный кабинет"
+      - data.message - очищенный от HTML текст всего письма (без стилей), разбитый на строки (\n)
+      - data.url - ссылка на "Личный кабинет" или "https://medflex.ru/login/", если ссылка не найдена
       - source - жестко задан "prodoctorov"
     """
     # Парсим HTML-контент
     soup = BeautifulSoup(html_content, "html.parser")
 
+    # Удаляем все теги <style>, чтобы стили не попадали в итоговый текст
+    for style in soup.find_all("style"):
+        style.extract()
+
     # Извлекаем текст, разделяя элементы символом новой строки
     raw_text = soup.get_text(separator="\n")
-    # Очищаем текст от лишних пробельных символов, оставляя структуру с \n
+    # Очищаем текст от лишних пробельных символов, сохраняя структуру
     cleaned_text = clean_message_text(raw_text)
 
-    # Для поиска данных разбиваем исходный текст на строки
+    # Разбиваем исходный текст на строки для поиска меток
     lines = [line.strip() for line in raw_text.split("\n") if line.strip()]
     name = extract_field(lines, "Пациент")
     phone_raw = extract_field(lines, "Контактный телефон")
     phone = format_phone(phone_raw) if phone_raw else ""
 
-    # Извлекаем ссылку "Личный кабинет"
+    # Ищем ссылку "Личный кабинет"; если не найдена, возвращаем дефолтную ссылку
     login_link_tag = soup.find("a", string=lambda s: s and "кабинет" in s.lower())
-    login_link = login_link_tag.get("href") if login_link_tag else ""
+    login_link = (
+        login_link_tag.get("href") if login_link_tag else "https://medflex.ru/login/"
+    )
 
     result = {
         "name": name or "",
@@ -73,5 +78,4 @@ def prodoctorov_parse_email(html_content):
         "data": {"message": cleaned_text, "url": login_link},
         "source": "prodoctorov",
     }
-    print(result)
     return result
