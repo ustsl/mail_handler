@@ -28,7 +28,16 @@ rules = [
         },
     },
     {
-        "rule": {"sender": "clinic-online@sberhealth.ru", "subject": "[СберЗдоровье]"},
+        "rule": {"sender": "clinic-online@sberhealth.ru", "subject": "СберЗдоровье"},
+        "action": {
+            "type": CRM_QUERY_TYPE,
+            "url": CRM_URL,
+            "headers": crm_headers,
+            "processor": sber_parse_email,
+        },
+    },
+    {
+        "rule": {"sender": "info@smt-clinic.ru", "subject": "СберЗдоровье"},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,

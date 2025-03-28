@@ -13,6 +13,7 @@ def sber_parse_email(content, subject, sender):
       - Очищает весь контент от HTML и лишних пробелов
       - Возвращает словарь с ключами: name, phone, data (с сообщением и темой письма) и source="sber"
     """
+    print(content)
     # Парсинг HTML
     soup = BeautifulSoup(content, "html.parser")
 
