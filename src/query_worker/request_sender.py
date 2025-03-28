@@ -1,5 +1,6 @@
-from src.query_worker.schema import HTTPMethod
 import aiohttp
+
+from src.query_worker.schema import HTTPMethod
 
 
 async def send_request(method: HTTPMethod, url: str, headers: dict = None, body=None):

@@ -1,9 +1,10 @@
 ### RULES FOR WORKING WITH LETTERS
 
-from src.settings import CLIENT_EMAIL, CRM_QUERY_TYPE, CRM_URL, crm_headers
-from src.processors.prodoctorov import prodoctorov_parse_email
-from src.query_worker.schema import QueryRules
 
+from src.processors.prodoctorov import prodoctorov_parse_email
+from src.processors.sber import sber_parse_email
+from src.query_worker.schema import QueryRules
+from src.settings import CLIENT_EMAIL, CRM_QUERY_TYPE, CRM_URL, crm_headers
 
 """
 Consists of two parts: rule, action.
@@ -18,7 +19,7 @@ The actions describe:
 
 rules = [
     {
-        "rule": {"sender": CLIENT_EMAIL, "subject": "запись"},
+        "rule": {"sender": "info@medflex.ru", "subject": "запись"},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,
@@ -27,12 +28,12 @@ rules = [
         },
     },
     {
-        "rule": {"sender": "info@medflex.ru", "subject": "запись"},
+        "rule": {"sender": "clinic-online@sberhealth.ru", "subject": "[СберЗдоровье]"},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,
             "headers": crm_headers,
-            "processor": prodoctorov_parse_email,
+            "processor": sber_parse_email,
         },
     },
 ]

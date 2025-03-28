@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Callable, List, Optional
+
 from pydantic import BaseModel, RootModel, model_validator
 
 

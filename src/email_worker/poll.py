@@ -1,4 +1,5 @@
 import asyncio
+
 from src.email_worker.check_email import check_mail
 from src.email_worker.schema import MailCheckSettings
 from src.rules import rules

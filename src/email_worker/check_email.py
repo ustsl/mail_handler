@@ -1,11 +1,11 @@
 import asyncio
-from src.query_worker.request_sender import send_request
-from src.processors.prodoctorov import prodoctorov_parse_email
-from src.email_worker.lib.mail_parser import EmailParser
-from src.email_worker.lib.mail_client import MailClient
-from src.email_worker.schema import MailCheckSettings
-from src.query_worker.schema import QueryRules, HTTPMethod
 
+from src.email_worker.lib.mail_client import MailClient
+from src.email_worker.lib.mail_parser import EmailParser
+from src.email_worker.schema import MailCheckSettings
+from src.processors.prodoctorov import prodoctorov_parse_email
+from src.query_worker.request_sender import send_request
+from src.query_worker.schema import HTTPMethod, QueryRules
 
 # Асинхронная функция для отправки HTTP-запроса
 

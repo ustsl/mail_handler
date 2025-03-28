@@ -1,8 +1,8 @@
 import os
+
 from dotenv import load_dotenv
 
 from src.email_worker.schema import MailCheckSettings
-
 
 load_dotenv()
 

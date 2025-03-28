@@ -1,5 +1,6 @@
-import imaplib
 import email
+import imaplib
+
 from src.email_worker.schema import MailCheckSettings
 
 
