@@ -7,11 +7,13 @@ class EmailParser:
 
     @staticmethod
     def decode_subject(subject_raw):
-        subject, encoding = decode_header(subject_raw)[0]
+        decoded_parts = decode_header(subject_raw)
+        subject, encoding = decoded_parts[0]
+
+        if encoding is None or encoding.lower() == "unknown-8bit":
+            encoding = "utf-8"
         if isinstance(subject, bytes):
-            subject = subject.decode(
-                encoding if encoding else "utf-8", errors="replace"
-            )
+            subject = subject.decode(encoding, errors="replace")
         return subject
 
     @staticmethod
@@ -22,7 +24,7 @@ class EmailParser:
     @staticmethod
     def decode_bytes(payload):
         """
-        Пытается декодировать байтовую строку с использованием нескольких кодировок.
+        Tries to decode the byte string using several encodings.
         """
         encodings = ["utf-8", "cp1251", "iso-8859-1"]
         for enc in encodings:
@@ -35,10 +37,10 @@ class EmailParser:
     @staticmethod
     def get_body(msg):
         """
-        Извлекает тело письма:
-          - Если письмо multipart, ищет первую текстовую часть без вложения
-          - Если письмо не multipart, пытается декодировать payload
-          - Использует decode_bytes для попытки нескольких вариантов декодирования
+        Extracts the body of the email:
+          - If the email is multipart, finds the first text part without an attachment.
+          - If not multipart, tries to decode the payload.
+          - Uses decode_bytes to try several decoding options.
         """
         body_text = None
         if msg.is_multipart():
