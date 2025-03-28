@@ -8,6 +8,7 @@ black==25.1.0
 click==8.1.8
 frozenlist==1.5.0
 idna==3.10
+isort==6.0.1
 multidict==6.2.0
 mypy-extensions==1.0.0
 packaging==24.2
