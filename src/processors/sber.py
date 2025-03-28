@@ -38,7 +38,6 @@ def sber_parse_email(content, subject, sender):
         "phone": phone,
         "data": {
             "message": cleaned_text,
-            "additionalInfo": subject,
         },
         "source": "sber",
     }
