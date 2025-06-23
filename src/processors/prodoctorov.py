@@ -2,14 +2,11 @@ import re
 
 from bs4 import BeautifulSoup
 
-from src.processors.utils.formatters import (
-    clean_message_text,
-    extract_field,
-    format_phone,
-)
+from src.processors.utils.formatters import (clean_message_text, extract_field,
+                                             format_phone)
 
 
-def prodoctorov_parse_email(html_content, subject, sender):
+def prodoctorov_parse_email(html_content, subject, sender, attachments):
     """
     Принимает HTML-содержимое письма, извлекает:
       - name (значение после метки "Пациент")

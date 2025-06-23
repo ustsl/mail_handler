@@ -9,16 +9,31 @@ load_dotenv()
 
 ### MAIL SERVER INTEGRATION SECTION
 
-IMAP_SERVER = os.getenv("IMAP_SERVER")
-IMAP_PORT = int(os.getenv("IMAP_PORT"))
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
+APPOINTMENT_IMAP_SERVER = os.getenv("APPOINTMENT_IMAP_SERVER")
+APPOINTMENT_IMAP_PORT = int(os.getenv("APPOINTMENT_IMAP_PORT"))
+APPOINTMENT_USERNAME = os.getenv("APPOINTMENT_USERNAME")
+APPOINTMENT_PASSWORD = os.getenv("APPOINTMENT_PASSWORD")
 
-mail_settings = MailCheckSettings(
-    imap_server=IMAP_SERVER, imap_port=IMAP_PORT, username=USERNAME, password=PASSWORD
+appointment_mail_settings = MailCheckSettings(
+    imap_server=APPOINTMENT_IMAP_SERVER, 
+    imap_port=APPOINTMENT_IMAP_PORT, 
+    username=APPOINTMENT_USERNAME, 
+    password=APPOINTMENT_PASSWORD
 )
 
-print(mail_settings)
+INSURANCE_IMAP_SERVER = os.getenv("INSURANCE_IMAP_SERVER")
+INSURANCE_IMAP_PORT = int(os.getenv("INSURANCE_IMAP_PORT"))
+INSURANCE_USERNAME = os.getenv("INSURANCE_USERNAME")
+INSURANCE_PASSWORD = os.getenv("INSURANCE_PASSWORD")
+
+insurance_mail_settings = MailCheckSettings(
+    imap_server=INSURANCE_IMAP_SERVER, 
+    imap_port=INSURANCE_IMAP_PORT, 
+    username=INSURANCE_USERNAME, 
+    password=INSURANCE_PASSWORD
+)
+
+print(appointment_mail_settings, insurance_mail_settings)
 
 
 ### CRM INTEGRATION SECTION

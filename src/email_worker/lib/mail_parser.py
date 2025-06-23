@@ -37,26 +37,73 @@ class EmailParser:
     @staticmethod
     def get_body(msg):
         """
-        Extracts the body of the email:
-          - If the email is multipart, finds the first text part without an attachment.
-          - If not multipart, tries to decode the payload.
-          - Uses decode_bytes to try several decoding options.
+        Извлекает тело письма, отдавая приоритет HTML-версии.
+        - Если письмо multipart, ищет и 'text/html', и 'text/plain'.
+        - Возвращает HTML, если найден, иначе возвращает Plain Text.
+        - Корректно обрабатывает одночастные (non-multipart) письма.
         """
-        body_text = None
+        html_body = None
+        plain_body = None
+
         if msg.is_multipart():
+            # Проходим по всем частям письма
             for part in msg.walk():
-                content_type = part.get_content_type()
-                content_disposition = str(part.get("Content-Disposition"))
+                # Пропускаем вложения и вложенные multipart-части
                 if (
-                    content_type == "text/plain"
-                    and "attachment" not in content_disposition
+                    part.get_content_maintype() == "multipart"
+                    or part.get("Content-Disposition") is not None
                 ):
-                    body = part.get_payload(decode=True)
-                    if body:
-                        body_text = EmailParser.decode_bytes(body)
-                        break
+                    continue
+
+                # Ищем HTML-часть
+                if part.get_content_type() == "text/html":
+                    payload = part.get_payload(decode=True)
+                    if payload:
+                        html_body = EmailParser.decode_bytes(payload)
+
+                # Ищем текстовую часть
+                elif part.get_content_type() == "text/plain":
+                    payload = part.get_payload(decode=True)
+                    if payload:
+                        plain_body = EmailParser.decode_bytes(payload)
+
         else:
-            body = msg.get_payload(decode=True)
-            if body:
-                body_text = EmailParser.decode_bytes(body)
-        return body_text
+            payload = msg.get_payload(decode=True)
+            if payload:
+                # Предполагаем, что это может быть plain text по умолчанию,
+                # но может быть и HTML. В данном контексте это не так критично.
+                plain_body = EmailParser.decode_bytes(payload)
+
+        # Отдаем приоритет HTML, так как процессор работает с ним.
+        # Если HTML нет, возвращаем plain text.
+        return html_body if html_body is not None else plain_body
+
+    @staticmethod
+    def get_attachments(msg) -> list[tuple[str, bytes]]:
+        """
+        Extracts attachments from the email.
+        Returns a list of tuples, where each tuple contains (filename, file_data_bytes).
+        """
+        attachments = []
+        for part in msg.walk():
+            if (
+                part.get_content_maintype() != "multipart"
+                and part.get("Content-Disposition") is not None
+            ):
+                filename = part.get_filename()
+                if filename:
+                    decoded_filename_parts = decode_header(filename)
+                    decoded_filename = []
+                    for part_fn, encoding in decoded_filename_parts:
+                        if isinstance(part_fn, bytes):
+                            encoding = encoding or "utf-8"
+                            decoded_filename.append(
+                                part_fn.decode(encoding, errors="replace")
+                            )
+                        else:
+                            decoded_filename.append(part_fn)
+
+                    final_filename = "".join(decoded_filename)
+                    file_data = part.get_payload(decode=True)
+                    attachments.append((final_filename, file_data))
+        return attachments

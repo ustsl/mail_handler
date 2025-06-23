@@ -3,8 +3,9 @@
 
 from src.processors.prodoctorov import prodoctorov_parse_email
 from src.processors.sber import sber_parse_email
+from src.processors.test import test_rule
 from src.query_worker.schema import QueryRules
-from src.settings import CLIENT_EMAIL, CRM_QUERY_TYPE, CRM_URL, crm_headers
+from src.settings import CRM_QUERY_TYPE, CRM_URL, crm_headers
 
 """
 Consists of two parts: rule, action.
@@ -44,7 +45,8 @@ rules = [
             "headers": crm_headers,
             "processor": sber_parse_email,
         },
-    },
+    }
+ 
 ]
 
 rules = QueryRules.model_validate(rules)

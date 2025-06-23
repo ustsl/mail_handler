@@ -39,6 +39,7 @@ class Action(BaseModel):
 class Rule(BaseModel):
     rule: Condition
     action: Action
+    attachment_field: Optional[str] = None
 
 
 # Корневая модель для списка правил
