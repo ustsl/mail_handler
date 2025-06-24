@@ -38,9 +38,7 @@ def apply_rule_action(
             rule.action.type,
             rule.action.url,
             headers=rule.action.headers,
-            body=processed_body,
-            attachments=attachments,
-            attachment_field=rule.attachment_field,
+            data=processed_body,
         )
     )
     print("Результат запроса:", result)
@@ -62,6 +60,8 @@ def check_mail(settings: MailCheckSettings, rules: QueryRules):
         if mail_ids:
             print(f"Найдено {len(mail_ids)} новых писем.")
 
+        can_be_marked_as_read = True
+
         for mail_id in mail_ids:
             msg = client.fetch_email(mail_id)
             subject = EmailParser.decode_subject(msg.get("Subject"))
@@ -81,6 +81,7 @@ def check_mail(settings: MailCheckSettings, rules: QueryRules):
             is_actual_rule = False
 
             for rule in rules.root:
+
                 subject_match = (
                     rule.rule.subject.lower() in subject.lower()
                     if rule.rule.subject
@@ -110,9 +111,14 @@ def check_mail(settings: MailCheckSettings, rules: QueryRules):
                         else:
                             print("Вложений в письме не найдено.")
 
-                    apply_rule_action(rule, body, subject, sender, attachments)
+                    try:
+                        apply_rule_action(rule, body, subject, sender, attachments)
+                    except Exception as e:
+                        print(f"Произошла ошибка")
+                        can_be_marked_as_read = False
 
-            client.mark_as_seen(mail_id)
+            if can_be_marked_as_read:
+                client.mark_as_seen(mail_id)
 
             if not is_actual_rule:
                 print(f"Письмо от {sender} не соответствует ни одного из правил")

@@ -27,21 +27,18 @@ class Condition(BaseModel):
         return values
 
 
-# Модель действия (здесь параметры действия передаются напрямую)
 class Action(BaseModel):
-    type: HTTPMethod  # принимает только указанные HTTP-методы
+    type: HTTPMethod
     url: str
     headers: dict
     processor: Optional[Callable] = None
 
 
-# Модель правила, где ключи "rule" и "action" должны присутствовать
 class Rule(BaseModel):
     rule: Condition
     action: Action
-    attachment_field: Optional[str] = None
+    attachment_field: Optional[bool] = None
 
 
-# Корневая модель для списка правил
 class QueryRules(RootModel[List[Rule]]):
     pass

@@ -1,8 +1,7 @@
-import os
-
 from bs4 import BeautifulSoup
+from aiohttp import FormData
 
-# Предполагается, что эта функция импортирована
+# Предполагается, что эта функция импортирована из вашего проекта
 from src.processors.utils.formatters import clean_message_text
 
 
@@ -11,45 +10,40 @@ def test_rule(
     subject: str,
     sender: str,
     attachments: list[tuple[str, bytes]] | None,
-):
-    """
-    Тестовый процессор, который анализирует вложения и обрабатывает тело письма.
-    Теперь он безопасно обрабатывает случаи, когда тело письма отсутствует.
-    """
-    # Анализ вложений (остается без изменений)
-    print("\n--- Анализ вложений в процессоре 'test_rule' ---")
-    if attachments and len(attachments) > 0:
-        num_files = len(attachments)
-        print(f"✅ Получено файлов: {num_files}")
-        extensions = [
-            os.path.splitext(filename)[1].lower() or "[нет расширения]"
-            for filename, _ in attachments
-        ]
-        print(f"🏷️  Расширения файлов: {list(set(extensions))}")
-    else:
-        print("ℹ️  Вложения не были переданы или отсутствуют в письме.")
-    print("--------------------------------------------------\n")
+) -> FormData:
 
-    if not content:
-        print(
-            "⚠️  Тело письма отсутствует (content is None). Пропускаем обработку HTML."
-        )
-        return ""  # Возвращаем пустую строку или другое значение по умолчанию
-    # --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+    # 1. Создаем экземпляр FormData
+    form_data = FormData()
 
-    # Этот код теперь будет выполняться только если content существует
-    print("--- Обработка тела письма ---")
-    # Парсинг HTML
-    soup = BeautifulSoup(content, "html.parser")
+    # 2. Обрабатываем текстовое содержимое письма
+    cleaned_text = ""
+    if content:
+        soup = BeautifulSoup(content, "html.parser")
 
-    # Удаляем все теги <style>
-    for style in soup.find_all("style"):
-        style.decompose()
+        # Удаляем все теги <style> для очистки
+        for style in soup.find_all("style"):
+            style.decompose()
 
-    # Извлекаем сырой текст с разделителем в виде новой строки
-    raw_text = soup.get_text(separator="\n")
-    cleaned_text = clean_message_text(raw_text)
+        # Извлекаем сырой текст с разделителем в виде новой строки
+        raw_text = soup.get_text(separator="\n")
+        cleaned_text = clean_message_text(raw_text)
 
-    print(cleaned_text)
+    # 3. Добавляем текстовые поля в FormData
+    form_data.add_field("insurance_email_sender", sender)
+    form_data.add_field("subject", subject)
+    form_data.add_field("original_message", cleaned_text)
 
-    return cleaned_text
+    # 4. Добавляем файлы (вложения) в FormData, если они есть
+    if attachments:
+        for filename, file_bytes in attachments:
+            # Используем 'files' в качестве имени поля,
+            # как было указано в вашей конфигурации правил
+            form_data.add_field(
+                "files",
+                file_bytes,
+                filename=filename,
+                # При необходимости можно указать content_type
+                # content_type='application/pdf'
+            )
+
+    return form_data
