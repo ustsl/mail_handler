@@ -8,18 +8,18 @@ from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
 
 
 rules = [
-    {
-        "rule": {
-            "sender": "@imvo.site",
-        },
-        "action": {
-            "type": INSURANCE_QUERY_TYPE,
-            "url": f"{INSURANCE_URL}/multiple",
-            "headers": insurance_headers,
-            "processor": renins_insurance_rule,
-        },
-        "attachment_field": True,
-    },
+    # {
+    #     "rule": {
+    #         "sender": "@imvo.site",
+    #     },
+    #     "action": {
+    #         "type": INSURANCE_QUERY_TYPE,
+    #         "url": f"{INSURANCE_URL}/multiple",
+    #         "headers": insurance_headers,
+    #         "processor": renins_insurance_rule,
+    #     },
+    #     "attachment_field": True,
+    # },
     {
         "rule": {
             "sender": "@sogaz.ru",
@@ -184,7 +184,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": INSURANCE_URL,
             "headers": insurance_headers,
-            "processor": common_insurance_rule,
+            "processor": renins_insurance_rule,
         },
         "attachment_field": True,
     },
