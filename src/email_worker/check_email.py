@@ -87,8 +87,13 @@ def check_mail(settings: MailCheckSettings, rules: QueryRules):
                     if rule.rule.subject
                     else True
                 )
+
                 sender_match = (
-                    sender.lower() == rule.rule.sender.lower()
+                    (
+                        rule.rule.sender.lower() in sender.lower()
+                        if rule.rule.sender.lower().startswith("@")
+                        else sender.lower() == rule.rule.sender.lower()
+                    )
                     if rule.rule.sender
                     else True
                 )

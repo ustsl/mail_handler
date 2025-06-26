@@ -3,7 +3,6 @@
 
 from src.processors.prodoctorov import prodoctorov_parse_email
 from src.processors.sber import sber_parse_email
-from src.processors.test import test_rule
 from src.query_worker.schema import QueryRules
 from src.settings import CRM_QUERY_TYPE, CRM_URL, crm_headers
 
@@ -19,6 +18,15 @@ The actions describe:
 """
 
 rules = [
+    # {
+    #     "rule": {"sender": "@imvo.site", "subject": "запись"},
+    #     "action": {
+    #         "type": "GET",
+    #         "url": CRM_URL,
+    #         "headers": crm_headers,
+    #         "processor": prodoctorov_parse_email,
+    #     },
+    # },
     {
         "rule": {"sender": "info@medflex.ru", "subject": "запись"},
         "action": {
@@ -45,8 +53,7 @@ rules = [
             "headers": crm_headers,
             "processor": sber_parse_email,
         },
-    }
- 
+    },
 ]
 
 rules = QueryRules.model_validate(rules)

@@ -17,6 +17,7 @@ platformdirs==4.3.7
 propcache==0.3.1
 pydantic==2.10.6
 pydantic_core==2.27.2
+pypdf==5.6.1
 python-dotenv==1.1.0
 soupsieve==2.6
 typing_extensions==4.12.2

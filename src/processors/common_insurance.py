@@ -5,7 +5,7 @@ from aiohttp import FormData
 from src.processors.utils.formatters import clean_message_text
 
 
-def test_rule(
+def common_insurance_rule(
     content: str | None,
     subject: str,
     sender: str,
@@ -36,14 +36,10 @@ def test_rule(
     # 4. Добавляем файлы (вложения) в FormData, если они есть
     if attachments:
         for filename, file_bytes in attachments:
-            # Используем 'files' в качестве имени поля,
-            # как было указано в вашей конфигурации правил
             form_data.add_field(
                 "files",
                 file_bytes,
                 filename=filename,
-                # При необходимости можно указать content_type
-                # content_type='application/pdf'
             )
 
     return form_data
