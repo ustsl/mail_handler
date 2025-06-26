@@ -46,45 +46,35 @@ class EmailParser:
         plain_body = None
 
         if msg.is_multipart():
-            # Проходим по всем частям письма
             for part in msg.walk():
-                # Пропускаем вложения и вложенные multipart-части
                 if (
                     part.get_content_maintype() == "multipart"
                     or part.get("Content-Disposition") is not None
                 ):
                     continue
 
-                # Ищем HTML-часть
                 if part.get_content_type() == "text/html":
                     payload = part.get_payload(decode=True)
                     if payload:
                         html_body = EmailParser.decode_bytes(payload)
 
-                # Ищем текстовую часть
                 elif part.get_content_type() == "text/plain":
                     payload = part.get_payload(decode=True)
                     if payload:
                         plain_body = EmailParser.decode_bytes(payload)
-
         else:
             payload = msg.get_payload(decode=True)
             if payload:
-                # Предполагаем, что это может быть plain text по умолчанию,
-                # но может быть и HTML. В данном контексте это не так критично.
                 plain_body = EmailParser.decode_bytes(payload)
 
-        # Отдаем приоритет HTML, так как процессор работает с ним.
-        # Если HTML нет, возвращаем plain text.
         return html_body if html_body is not None else plain_body
 
     @staticmethod
     def get_attachments(msg) -> list[tuple[str, bytes]]:
-        """
-        Extracts attachments from the email.
-        Returns a list of tuples, where each tuple contains (filename, file_data_bytes).
-        """
+
         attachments = []
+        MAX_SIZE_BYTES = 5 * 1024 * 1024
+
         for part in msg.walk():
             if (
                 part.get_content_maintype() != "multipart"
@@ -105,5 +95,8 @@ class EmailParser:
 
                     final_filename = "".join(decoded_filename)
                     file_data = part.get_payload(decode=True)
-                    attachments.append((final_filename, file_data))
+
+                    if file_data and len(file_data) <= MAX_SIZE_BYTES:
+                        attachments.append((final_filename, file_data))
+
         return attachments

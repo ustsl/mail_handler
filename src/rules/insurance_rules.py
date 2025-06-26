@@ -2,23 +2,24 @@
 
 from src.processors.common_insurance import common_insurance_rule
 from src.processors.insurance_rules.sogaz_insurance_rule import sogaz_insurance_rule
+from src.processors.insurance_rules.renins_insurance_rule import renins_insurance_rule
 from src.query_worker.schema import QueryRules
 from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
 
 
 rules = [
-    # {
-    #     "rule": {
-    #         "sender": "@imvo.site",
-    #     },
-    #     "action": {
-    #         "type": INSURANCE_QUERY_TYPE,
-    #         "url": INSURANCE_URL,
-    #         "headers": insurance_headers,
-    #         "processor": sogaz_insurance_rule,
-    #     },
-    #     "attachment_field": True,
-    # },
+    {
+        "rule": {
+            "sender": "@imvo.site",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": f"{INSURANCE_URL}/multiple",
+            "headers": insurance_headers,
+            "processor": renins_insurance_rule,
+        },
+        "attachment_field": True,
+    },
     {
         "rule": {
             "sender": "@sogaz.ru",
