@@ -5,7 +5,6 @@ from aiohttp import FormData
 from bs4 import BeautifulSoup
 from typing import List, Tuple, Optional
 
-# Убедитесь, что вы установили xlrd: pip install xlrd
 from src.processors.utils.formatters import clean_message_text
 
 
