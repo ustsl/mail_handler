@@ -45,7 +45,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": INSURANCE_URL,
             "headers": insurance_headers,
-            "processor": common_insurance_rule,
+            "processor": alfa_insurance_rule,
         },
         "attachment_field": True,
     },
