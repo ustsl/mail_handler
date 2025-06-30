@@ -1,4 +1,5 @@
 import io
+import re  # <<<=== Добавляем импорт для регулярных выражений
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
@@ -14,10 +15,7 @@ def renins_insurance_rule(
     sender: str,
     attachments: Optional[List[Tuple[str, bytes]]],
 ) -> FormData:
-    """
-    Обрабатывает письма от «Ренессанс Страхование».
-    Поддерживает извлечение данных из .doc и .xls/.xlsx файлов.
-    """
+
     form_data = FormData()
 
     cleaned_text = ""
@@ -33,19 +31,51 @@ def renins_insurance_rule(
     form_data.add_field("original_message", cleaned_text)
 
     patients_data = []
+
+    if attachments and cleaned_text:
+
+        is_pdf_attached = any(
+            filename.lower().endswith(".pdf") for filename, _ in attachments
+        )
+
+        if is_pdf_attached:
+            patient_fio = ""
+            policy_number = ""
+
+            fio_pattern = r"на имя\s*([А-Яа-яЁё]+\s+[А-Яа-яЁё]+\s+[А-Яа-яЁё]+)"
+            fio_match = re.search(fio_pattern, cleaned_text, re.IGNORECASE)
+            if fio_match:
+                patient_fio = fio_match.group(1).strip()
+            policy_pattern = r"Номер полиса:\s*([\w\d/]+)"
+            policy_match = re.search(policy_pattern, cleaned_text, re.IGNORECASE)
+            if policy_match:
+                policy_number = policy_match.group(1).strip()
+
+            if patient_fio and policy_number:
+                print(
+                    f"Из тела письма извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
+                )
+                patients_data.append(
+                    {
+                        "patient_name": patient_fio,
+                        "insurance_policy_number": policy_number,
+                    }
+                )
+
     if attachments:
         for filename, file_bytes in attachments:
             form_data.add_field("files", file_bytes, filename=filename)
+
             if filename.lower().endswith((".xls", ".xlsx")):
                 try:
                     df = pd.read_excel(io.BytesIO(file_bytes), header=None)
-
                     PATIENT_NAME_KEYWORD = "фамил"
                     POLICY_NUM_KEYWORD = "полис"
-
-                    header_row_index = -1
-                    patient_name_col_index = -1
-                    policy_num_col_index = -1
+                    header_row_index, patient_name_col_index, policy_num_col_index = (
+                        -1,
+                        -1,
+                        -1,
+                    )
 
                     for i, row in df.iterrows():
                         row_values = [
@@ -63,7 +93,6 @@ def renins_insurance_rule(
                             header_list = [
                                 str(v).lower().strip() for v in list(df.iloc[i])
                             ]
-
                             for col_idx, header_val in enumerate(header_list):
                                 if PATIENT_NAME_KEYWORD in header_val:
                                     patient_name_col_index = col_idx
@@ -74,13 +103,10 @@ def renins_insurance_rule(
                     if header_row_index != -1:
                         for i in range(header_row_index + 1, len(df)):
                             data_row = df.iloc[i]
-
                             patient_name = data_row.iloc[patient_name_col_index]
                             policy_num = data_row.iloc[policy_num_col_index]
-
                             if pd.isna(patient_name) and pd.isna(policy_num):
                                 break
-
                             if pd.notna(patient_name) and pd.notna(policy_num):
                                 patients_data.append(
                                     {
@@ -90,8 +116,9 @@ def renins_insurance_rule(
                                         ).strip(),
                                     }
                                 )
-
                 except Exception as e:
                     print(f"Произошла ошибка при обработке Excel файла {filename}: {e}")
+
     finalize_and_add_patients_json(form_data, patients_data)
+
     return form_data
