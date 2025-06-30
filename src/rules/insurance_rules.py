@@ -6,6 +6,7 @@ from src.processors.insurance_rules.renins_insurance_rule import renins_insuranc
 from src.processors.insurance_rules.ingos_insurance_rule import (
     ingosstrah_insurance_rule,
 )
+from src.processors.insurance_rules.alfa_insurance_rule import alfa_insurance_rule
 from src.processors.insurance_rules.vsk_insurance_rule import vsk_insurance_rule
 from src.query_worker.schema import QueryRules
 from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
@@ -20,7 +21,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": ingosstrah_insurance_rule,
+            "processor": alfa_insurance_rule,
         },
         "attachment_field": True,
     },

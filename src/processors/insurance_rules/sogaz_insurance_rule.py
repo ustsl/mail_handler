@@ -35,8 +35,6 @@ def sogaz_insurance_rule(
     if attachments:
         for filename, file_bytes in attachments:
             form_data.add_field("files", file_bytes, filename=filename)
-
-            # --- Обработка PDF (без изменений) ---
             if filename.lower().endswith(".pdf"):
                 pdf_text = extract_text_from_pdf(file_bytes)
                 if pdf_text:
@@ -75,17 +73,15 @@ def sogaz_insurance_rule(
                     patronymic_col_index = -1
                     policy_num_col_index = -1
 
-                    # Заголовки, которые мы обязаны найти
                     required_headers = {"Фамилия", "Имя", "Отчество", "№ полиса"}
 
                     for i, row in df.iterrows():
                         row_values = {str(v).strip() for v in row.values if pd.notna(v)}
-                        # Проверяем, что все нужные заголовки есть в строке
+
                         if required_headers.issubset(row_values):
                             header_row_index = i
                             header_list = [str(v).strip() for v in list(df.iloc[i])]
 
-                            # Находим и сохраняем индексы колонок
                             last_name_col_index = header_list.index("Фамилия")
                             first_name_col_index = header_list.index("Имя")
                             patronymic_col_index = header_list.index("Отчество")
@@ -99,27 +95,24 @@ def sogaz_insurance_rule(
                         for i in range(header_row_index + 1, len(df)):
                             data_row = df.iloc[i]
                             first_cell_val = data_row.iloc[0]
-                            # Прерываем цикл, если строка не похожа на строку с данными (например, пустая или без номера п/п)
+
                             if (
                                 pd.isna(first_cell_val)
                                 or not str(first_cell_val).strip().isdigit()
                             ):
                                 break
 
-                            # Извлекаем ФИО и номер полиса по найденным индексам
                             last_name = data_row.iloc[last_name_col_index]
                             first_name = data_row.iloc[first_name_col_index]
                             patronymic = data_row.iloc[patronymic_col_index]
                             policy_num = data_row.iloc[policy_num_col_index]
 
-                            # Добавляем данные, только если все поля присутствуют
                             if (
                                 pd.notna(last_name)
                                 and pd.notna(first_name)
                                 and pd.notna(patronymic)
                                 and pd.notna(policy_num)
                             ):
-                                # Собираем полное имя в одну строку
                                 full_name = f"{str(last_name).strip()} {str(first_name).strip()} {str(patronymic).strip()}"
 
                                 patients_data.append(

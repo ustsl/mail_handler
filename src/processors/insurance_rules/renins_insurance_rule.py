@@ -15,10 +15,7 @@ def renins_insurance_rule(
     sender: str,
     attachments: Optional[List[Tuple[str, bytes]]],
 ) -> FormData:
-    """
-    Обрабатывает входящее письмо. Пытается извлечь данные из КАЖДОГО Excel-файла
-    и прикрепляет к запросу ВСЕ исходные файлы.
-    """
+
     form_data = FormData()
 
     # 1. Подготовка текстовых полей

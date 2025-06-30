@@ -17,10 +17,7 @@ def vsk_insurance_rule(
     sender: str,
     attachments: list[tuple[str, bytes]] | None,
 ) -> FormData:
-    """
-    Обрабатывает гарантийные письма от «ВСК».
-    Собирает данные из PDF и Excel в единый JSON-список.
-    """
+
     form_data = FormData()
 
     cleaned_text = ""
