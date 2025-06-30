@@ -221,6 +221,18 @@ rules = [
         },
         "attachment_field": True,
     },
+    {
+        "rule": {
+            "sender": "@crosshub.ru",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": INSURANCE_URL,
+            "headers": insurance_headers,
+            "processor": common_insurance_rule,
+        },
+        "attachment_field": True,
+    },
 ]
 
 rules = QueryRules.model_validate(rules)
