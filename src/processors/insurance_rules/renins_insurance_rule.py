@@ -18,7 +18,6 @@ def renins_insurance_rule(
 
     form_data = FormData()
 
-    # 1. Подготовка текстовых полей
     cleaned_text = ""
     if content:
         soup = BeautifulSoup(content, "html.parser")

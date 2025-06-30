@@ -3,9 +3,9 @@ import io
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 import pandas as pd
-import pypdf
 
 
+from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 
@@ -36,11 +36,7 @@ def ingosstrah_insurance_rule(
 
             if filename.lower().endswith(".pdf"):
                 try:
-                    pdf_file = io.BytesIO(file_bytes)
-                    reader = pypdf.PdfReader(pdf_file)
-                    pdf_text = ""
-                    for page in reader.pages:
-                        pdf_text += page.extract_text() or ""
+                    pdf_text = extract_text_from_pdf(file_bytes)
 
                     if pdf_text:
                         fio_pattern = r"ФИО Дата\nрождения\n№ Полиса Страхователь № Договора ДМС\n([А-ЯЁ\s]+?)\s+\d{2}\.\d{2}\.\d{4}"
