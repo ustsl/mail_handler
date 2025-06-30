@@ -25,7 +25,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": reso_insurance_rule,
+            "processor": renins_insurance_rule,
         },
         "attachment_field": True,
     },
