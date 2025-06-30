@@ -94,7 +94,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": INSURANCE_URL,
             "headers": insurance_headers,
-            "processor": common_insurance_rule,
+            "processor": sovcom_insurance_rule,
         },
         "attachment_field": True,
     },
