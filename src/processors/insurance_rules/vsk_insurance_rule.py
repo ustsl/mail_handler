@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import pypdf
 
 
+from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 
 
@@ -134,16 +135,6 @@ def vsk_insurance_rule(
                 except Exception as e:
                     print(f"Ошибка при обработке Excel-файла '{filename}': {e}")
 
-    if len(patients_data) > 0:
-        print(
-            f"Всего извлечено {len(patients_data)} записей о пациентах. Добавляем в JSON."
-        )
-        patients_json_string = json.dumps(patients_data, ensure_ascii=False)
-    else:
-        patients_json_string = json.dumps(
-            [{"patient_name": "", "insurance_policy_number": ""}], ensure_ascii=False
-        )
-
-    form_data.add_field("patients_info_json", patients_json_string)
+    finalize_and_add_patients_json(form_data, patients_data)
 
     return form_data

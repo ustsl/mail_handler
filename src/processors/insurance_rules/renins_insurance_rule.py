@@ -5,6 +5,7 @@ from aiohttp import FormData
 from bs4 import BeautifulSoup
 from typing import List, Tuple, Optional
 
+from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 
 
@@ -36,6 +37,9 @@ def renins_insurance_rule(
     patients_data = []
     if attachments:
         for filename, file_bytes in attachments:
+
+            form_data.add_field("files", file_bytes, filename=filename)
+
             if filename.lower().endswith((".xls", ".xlsx")):
                 try:
                     df = pd.read_excel(io.BytesIO(file_bytes), header=None)
@@ -84,20 +88,6 @@ def renins_insurance_rule(
                 except Exception as e:
                     print(f"Произошла ошибка при обработке файла {filename}: {e}")
 
-    if patients_data:
-        print(
-            f"Всего извлечено {len(patients_data)} записей о пациентах. Добавляем в JSON."
-        )
-        patients_json_string = json.dumps(patients_data, ensure_ascii=False)
-    else:
-        patients_json_string = json.dumps(
-            [{"patient_name": "", "insurance_policy_number": ""}], ensure_ascii=False
-        )
-    form_data.add_field("patients_info_json", patients_json_string)
-
-    if attachments:
-        print("Прикрепляем все исходные файлы к запросу...")
-        for filename, file_bytes in attachments:
-            form_data.add_field("files", file_bytes, filename=filename)
+    finalize_and_add_patients_json(form_data, patients_data)
 
     return form_data

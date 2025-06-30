@@ -1,11 +1,12 @@
-import json
 import re
 import io
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 import pandas as pd
+import pypdf
 
-from src.processors.utils.pdf_parser import extract_text_from_pdf
+
+from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 
 
@@ -34,32 +35,45 @@ def ingosstrah_insurance_rule(
             form_data.add_field("files", file_bytes, filename=filename)
 
             if filename.lower().endswith(".pdf"):
-                pdf_text = extract_text_from_pdf(file_bytes)
-                if pdf_text:
-                    fio_matches = re.finditer(
-                        r"Застрахованное лицо:\s*(.*?)\n", pdf_text
-                    )
-                    policy_matches = re.finditer(r"№ полиса:\s*([A-Z0-9-]+)", pdf_text)
-                    for fio_match, policy_match in zip(fio_matches, policy_matches):
-                        patients_data.append(
-                            {
-                                "patient_name": fio_match.group(1).strip(),
-                                "insurance_policy_number": policy_match.group(
-                                    1
-                                ).strip(),
-                            }
+                try:
+                    pdf_file = io.BytesIO(file_bytes)
+                    reader = pypdf.PdfReader(pdf_file)
+                    pdf_text = ""
+                    for page in reader.pages:
+                        pdf_text += page.extract_text() or ""
+
+                    if pdf_text:
+                        fio_pattern = r"ФИО Дата\nрождения\n№ Полиса Страхователь № Договора ДМС\n([А-ЯЁ\s]+?)\s+\d{2}\.\d{2}\.\d{4}"
+                        fio_match = re.search(fio_pattern, pdf_text)
+
+                        policy_pattern = (
+                            r"№ Договора ДМС[\s\S]+?(\d+-\d+)\s*\nОплата будет"
                         )
+                        policy_match = re.search(policy_pattern, pdf_text)
+
+                        if fio_match and policy_match:
+                            patient_fio = fio_match.group(1).replace("\n", " ").strip()
+                            policy_number = policy_match.group(1).strip()
+
+                            patients_data.append(
+                                {
+                                    "patient_name": patient_fio,
+                                    "insurance_policy_number": policy_number,
+                                }
+                            )
+                except Exception as e:
+                    print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
 
             if filename.lower().endswith((".xls", ".xlsx")):
                 try:
                     df = pd.read_excel(io.BytesIO(file_bytes), header=None)
-
                     header_row_index = -1
-                    last_name_col_index = -1
-                    first_name_col_index = -1
-                    patronymic_col_index = -1
-                    policy_num_col_index = -1
-
+                    (
+                        last_name_col_index,
+                        first_name_col_index,
+                        patronymic_col_index,
+                        policy_num_col_index,
+                    ) = (-1, -1, -1, -1)
                     required_headers = {"Фамилия", "Имя", "Отчество", "№ полиса"}
 
                     for i, row in df.iterrows():
@@ -67,7 +81,6 @@ def ingosstrah_insurance_rule(
                         if required_headers.issubset(row_values):
                             header_row_index = i
                             header_list = [str(v).strip() for v in list(df.iloc[i])]
-
                             last_name_col_index = header_list.index("Фамилия")
                             first_name_col_index = header_list.index("Имя")
                             patronymic_col_index = header_list.index("Отчество")
@@ -75,9 +88,6 @@ def ingosstrah_insurance_rule(
                             break
 
                     if header_row_index != -1:
-                        print(
-                            f"  > Заголовок найден в строке {header_row_index} файла '{filename}'. Начинаем сбор данных..."
-                        )
                         for i in range(header_row_index + 1, len(df)):
                             data_row = df.iloc[i]
                             first_cell_val = data_row.iloc[0]
@@ -86,12 +96,10 @@ def ingosstrah_insurance_rule(
                                 or not str(first_cell_val).strip().isdigit()
                             ):
                                 break
-
                             last_name = data_row.iloc[last_name_col_index]
                             first_name = data_row.iloc[first_name_col_index]
                             patronymic = data_row.iloc[patronymic_col_index]
                             policy_num = data_row.iloc[policy_num_col_index]
-
                             if (
                                 pd.notna(last_name)
                                 and pd.notna(first_name)
@@ -99,7 +107,6 @@ def ingosstrah_insurance_rule(
                                 and pd.notna(policy_num)
                             ):
                                 full_name = f"{str(last_name).strip()} {str(first_name).strip()} {str(patronymic).strip()}"
-
                                 patients_data.append(
                                     {
                                         "patient_name": full_name,
@@ -108,24 +115,9 @@ def ingosstrah_insurance_rule(
                                         ).strip(),
                                     }
                                 )
-                    else:
-                        print(
-                            f"  > В файле {filename} не найдена таблица с пациентами (не найдены заголовки)."
-                        )
-
                 except Exception as e:
                     print(f"Произошла ошибка при обработке файла {filename}: {e}")
 
-    if len(patients_data) > 0:
-        print(
-            f"Всего извлечено {len(patients_data)} записей о пациентах. Добавляем в JSON."
-        )
-        patients_json_string = json.dumps(patients_data, ensure_ascii=False)
-    else:
-        patients_json_string = json.dumps(
-            [{"patient_name": "", "insurance_policy_number": ""}], ensure_ascii=False
-        )
-
-    form_data.add_field("patients_info_json", patients_json_string)
+    finalize_and_add_patients_json(form_data, patients_data)
 
     return form_data

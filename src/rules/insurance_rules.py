@@ -20,7 +20,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": vsk_insurance_rule,
+            "processor": ingosstrah_insurance_rule,
         },
         "attachment_field": True,
     },
