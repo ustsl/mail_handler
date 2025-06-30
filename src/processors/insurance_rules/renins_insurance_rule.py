@@ -36,54 +36,53 @@ def renins_insurance_rule(
     patients_data = []
     if attachments:
         for filename, file_bytes in attachments:
-            if not filename.lower().endswith((".xls", ".xlsx")):
-                continue  # Пропускаем не-Excel файлы
+            if filename.lower().endswith((".xls", ".xlsx")):
+                try:
+                    df = pd.read_excel(io.BytesIO(file_bytes), header=None)
 
-            print(f"Пытаемся обработать Excel-файл: {filename}")
-            try:
-                df = pd.read_excel(io.BytesIO(file_bytes), header=None)
+                    header_row_index = -1
+                    patient_name_col_index = -1
+                    policy_num_col_index = -1
 
-                header_row_index = -1
-                patient_name_col_index = -1
-                policy_num_col_index = -1
-
-                for i, row in df.iterrows():
-                    row_values = [str(v).strip() for v in row.values if pd.notna(v)]
-                    if "Фамилия" in row_values and "№ полиса" in row_values:
-                        header_row_index = i
-                        header_list = [str(v).strip() for v in list(df.iloc[i])]
-                        patient_name_col_index = header_list.index("Фамилия")
-                        policy_num_col_index = header_list.index("№ полиса")
-                        break
-
-                if header_row_index != -1:
-                    print(
-                        f"  > Заголовок найден в строке {header_row_index}. Начинаем сбор данных..."
-                    )
-                    for i in range(header_row_index + 1, len(df)):
-                        data_row = df.iloc[i]
-                        first_cell_val = data_row.iloc[0]
-                        if (
-                            pd.isna(first_cell_val)
-                            or not str(first_cell_val).strip().isdigit()
-                        ):
+                    for i, row in df.iterrows():
+                        row_values = [str(v).strip() for v in row.values if pd.notna(v)]
+                        if "Фамилия" in row_values and "№ полиса" in row_values:
+                            header_row_index = i
+                            header_list = [str(v).strip() for v in list(df.iloc[i])]
+                            patient_name_col_index = header_list.index("Фамилия")
+                            policy_num_col_index = header_list.index("№ полиса")
                             break
 
-                        patient_name = data_row.iloc[patient_name_col_index]
-                        policy_num = data_row.iloc[policy_num_col_index]
+                    if header_row_index != -1:
+                        print(
+                            f"  > Заголовок найден в строке {header_row_index}. Начинаем сбор данных..."
+                        )
+                        for i in range(header_row_index + 1, len(df)):
+                            data_row = df.iloc[i]
+                            first_cell_val = data_row.iloc[0]
+                            if (
+                                pd.isna(first_cell_val)
+                                or not str(first_cell_val).strip().isdigit()
+                            ):
+                                break
 
-                        if pd.notna(patient_name) and pd.notna(policy_num):
-                            patients_data.append(
-                                {
-                                    "patient_name": str(patient_name),
-                                    "insurance_policy_number": str(policy_num),
-                                }
-                            )
-                else:
-                    print(f"  > В файле {filename} не найдена таблица с пациентами.")
+                            patient_name = data_row.iloc[patient_name_col_index]
+                            policy_num = data_row.iloc[policy_num_col_index]
 
-            except Exception as e:
-                print(f"Произошла ошибка при обработке файла {filename}: {e}")
+                            if pd.notna(patient_name) and pd.notna(policy_num):
+                                patients_data.append(
+                                    {
+                                        "patient_name": str(patient_name),
+                                        "insurance_policy_number": str(policy_num),
+                                    }
+                                )
+                    else:
+                        print(
+                            f"  > В файле {filename} не найдена таблица с пациентами."
+                        )
+
+                except Exception as e:
+                    print(f"Произошла ошибка при обработке файла {filename}: {e}")
 
     if patients_data:
         print(

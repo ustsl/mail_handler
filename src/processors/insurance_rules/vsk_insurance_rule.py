@@ -1,5 +1,7 @@
 import re
 import io
+import json
+import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 import pypdf
@@ -16,6 +18,7 @@ def vsk_insurance_rule(
 ) -> FormData:
     """
     Обрабатывает гарантийные письма от «ВСК».
+    Собирает данные из PDF и Excel в единый JSON-список.
     """
     form_data = FormData()
 
@@ -30,6 +33,8 @@ def vsk_insurance_rule(
     form_data.add_field("insurance_email_sender", sender)
     form_data.add_field("subject", subject)
     form_data.add_field("original_message", cleaned_text)
+
+    patients_data = []
 
     if attachments:
         for filename, file_bytes in attachments:
@@ -47,9 +52,6 @@ def vsk_insurance_rule(
                     for page in reader.pages:
                         pdf_text += page.extract_text() or ""
 
-                    patient_fio = None
-                    policy_number = None
-
                     fio_pattern = r"ФИО застрахованного лица\s+([\w\s]+?),"
                     fio_match = re.search(fio_pattern, pdf_text)
 
@@ -58,21 +60,90 @@ def vsk_insurance_rule(
                     )
                     policy_match = re.search(policy_pattern, pdf_text)
 
-                    if fio_match:
+                    if fio_match and policy_match:
                         patient_fio = fio_match.group(1).strip()
-
-                    if policy_match:
                         policy_number = policy_match.group(1).strip()
-
-                    if patient_fio:
-                        print(f"ФИО пациента: {patient_fio}")
-                        form_data.add_field("patient_name", patient_fio)
-
-                    if policy_number:
-                        print(f"Номер полиса пациента: {policy_number}")
-                        form_data.add_field("insurance_policy_number", policy_number)
+                        print(
+                            f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
+                        )
+                        patients_data.append(
+                            {
+                                "patient_name": patient_fio,
+                                "insurance_policy_number": policy_number,
+                            }
+                        )
 
                 except Exception as e:
                     print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
+
+            if filename.lower().endswith((".xls", ".xlsx")):
+                try:
+                    df = pd.read_excel(io.BytesIO(file_bytes), header=None)
+                    header_row_index = -1
+                    (
+                        last_name_col_index,
+                        first_name_col_index,
+                        patronymic_col_index,
+                        policy_num_col_index,
+                    ) = (-1, -1, -1, -1)
+                    required_headers = {"Фамилия", "Имя", "Отчество", "№ полиса"}
+
+                    for i, row in df.iterrows():
+                        row_values = {str(v).strip() for v in row.values if pd.notna(v)}
+                        if required_headers.issubset(row_values):
+                            header_row_index = i
+                            header_list = [str(v).strip() for v in list(df.iloc[i])]
+                            last_name_col_index = header_list.index("Фамилия")
+                            first_name_col_index = header_list.index("Имя")
+                            patronymic_col_index = header_list.index("Отчество")
+                            policy_num_col_index = header_list.index("№ полиса")
+                            break
+
+                    if header_row_index != -1:
+                        for i in range(header_row_index + 1, len(df)):
+                            data_row = df.iloc[i]
+                            first_cell_val = data_row.iloc[0]
+                            if (
+                                pd.isna(first_cell_val)
+                                or not str(first_cell_val).strip().isdigit()
+                            ):
+                                break
+
+                            last_name = data_row.iloc[last_name_col_index]
+                            first_name = data_row.iloc[first_name_col_index]
+                            patronymic = data_row.iloc[patronymic_col_index]
+                            policy_num = data_row.iloc[policy_num_col_index]
+
+                            if (
+                                pd.notna(last_name)
+                                and pd.notna(first_name)
+                                and pd.notna(patronymic)
+                                and pd.notna(policy_num)
+                            ):
+                                full_name = f"{str(last_name).strip()} {str(first_name).strip()} {str(patronymic).strip()}"
+                                policy_str = str(policy_num).strip()
+                                print(
+                                    f"Из Excel '{filename}' извлечено: ФИО='{full_name}', Полис='{policy_str}'"
+                                )
+                                patients_data.append(
+                                    {
+                                        "patient_name": full_name,
+                                        "insurance_policy_number": policy_str,
+                                    }
+                                )
+                except Exception as e:
+                    print(f"Ошибка при обработке Excel-файла '{filename}': {e}")
+
+    if len(patients_data) > 0:
+        print(
+            f"Всего извлечено {len(patients_data)} записей о пациентах. Добавляем в JSON."
+        )
+        patients_json_string = json.dumps(patients_data, ensure_ascii=False)
+    else:
+        patients_json_string = json.dumps(
+            [{"patient_name": "", "insurance_policy_number": ""}], ensure_ascii=False
+        )
+
+    form_data.add_field("patients_info_json", patients_json_string)
 
     return form_data

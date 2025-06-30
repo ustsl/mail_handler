@@ -41,6 +41,7 @@ def apply_rule_action(
             data=processed_body,
         )
     )
+    print(rule.action.url)
     print("Результат запроса:", result)
 
 
