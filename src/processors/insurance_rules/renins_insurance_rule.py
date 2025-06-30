@@ -1,5 +1,6 @@
 import io
-import json
+import re
+
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
@@ -15,7 +16,10 @@ def renins_insurance_rule(
     sender: str,
     attachments: Optional[List[Tuple[str, bytes]]],
 ) -> FormData:
-
+    """
+    Обрабатывает письма от «Ренессанс Страхование».
+    Поддерживает извлечение данных из .doc и .xls/.xlsx файлов.
+    """
     form_data = FormData()
 
     cleaned_text = ""
@@ -54,9 +58,6 @@ def renins_insurance_rule(
                             break
 
                     if header_row_index != -1:
-                        print(
-                            f"  > Заголовок найден в строке {header_row_index}. Начинаем сбор данных..."
-                        )
                         for i in range(header_row_index + 1, len(df)):
                             data_row = df.iloc[i]
                             first_cell_val = data_row.iloc[0]
@@ -76,10 +77,6 @@ def renins_insurance_rule(
                                         "insurance_policy_number": str(policy_num),
                                     }
                                 )
-                    else:
-                        print(
-                            f"  > В файле {filename} не найдена таблица с пациентами."
-                        )
 
                 except Exception as e:
                     print(f"Произошла ошибка при обработке файла {filename}: {e}")
