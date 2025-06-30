@@ -1,3 +1,4 @@
+import re
 from bs4 import BeautifulSoup
 from aiohttp import FormData
 
@@ -5,13 +6,16 @@ from src.processors.utils.form_data_finalize import finalize_and_add_patients_js
 from src.processors.utils.formatters import clean_message_text
 
 
-def common_insurance_rule(
+def sovcom_insurance_rule(
     content: str | None,
     subject: str,
     sender: str,
     attachments: list[tuple[str, bytes]] | None,
 ) -> FormData:
-
+    """
+    Обрабатывает письма от «Совкомбанк Страхование».
+    Извлекает данные о пациенте из тела письма.
+    """
     form_data = FormData()
     patients_data = []
 
@@ -29,7 +33,28 @@ def common_insurance_rule(
     form_data.add_field("subject", subject)
     form_data.add_field("original_message", cleaned_text)
 
-    # 4. Добавляем файлы (вложения) в FormData, если они есть
+    if cleaned_text:
+
+        pattern = (
+            r"([А-Яа-яЁё]+\s+[А-Яа-яЁё]+\s+[А-Яа-яЁё]+),\s*номер полиса\s*([\d\-/]+)"
+        )
+        match = re.search(pattern, cleaned_text)
+
+        if match:
+            patient_fio = match.group(1).strip()
+            policy_number = match.group(2).strip()
+
+            print(
+                f"Из тела письма извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
+            )
+
+            patients_data.append(
+                {
+                    "patient_name": patient_fio,
+                    "insurance_policy_number": policy_number,
+                }
+            )
+
     if attachments:
         for filename, file_bytes in attachments:
             form_data.add_field(
