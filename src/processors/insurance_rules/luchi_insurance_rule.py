@@ -1,6 +1,5 @@
 import re
 import io
-
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
@@ -12,13 +11,16 @@ from src.processors.utils.form_data_finalize import finalize_and_add_patients_js
 from src.processors.utils.formatters import clean_message_text
 
 
-def vsk_insurance_rule(
+def luchi_insurance_rule(
     content: str | None,
     subject: str,
     sender: str,
     attachments: list[tuple[str, bytes]] | None,
 ) -> FormData:
-
+    """
+    Обрабатывает гарантийные письма от «Лучи Здоровье».
+    Извлекает данные из PDF или Excel файлов.
+    """
     form_data = FormData()
 
     cleaned_text = ""
@@ -47,31 +49,39 @@ def vsk_insurance_rule(
                 try:
                     pdf_text = extract_text_from_pdf(file_bytes)
 
-                    fio_pattern = r"ФИО застрахованного лица\s+([\w\s]+?),"
-                    fio_match = re.search(fio_pattern, pdf_text)
+                    if pdf_text:
+                        patient_fio = ""
+                        policy_number = ""
 
-                    policy_pattern = (
-                        r"Договор страхования \(полис\), срок\s*\n\s*действия\s+(\S+)"
-                    )
-                    policy_match = re.search(policy_pattern, pdf_text)
+                        fio_pattern = r"Пациент:\s*(.*?)\n"
+                        fio_match = re.search(fio_pattern, pdf_text)
+                        if fio_match:
+                            patient_fio = fio_match.group(1).strip()
 
-                    if fio_match and policy_match:
-                        patient_fio = fio_match.group(1).strip()
-                        policy_number = policy_match.group(1).strip()
-                        print(
-                            f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
-                        )
-                        patients_data.append(
-                            {
-                                "patient_name": patient_fio,
-                                "insurance_policy_number": policy_number,
-                            }
-                        )
+                        policy_pattern = r"Номер полиса:\s*(\d+)"
+                        policy_match = re.search(policy_pattern, pdf_text)
+                        if policy_match:
+                            policy_number = policy_match.group(1).strip()
+
+                        if patient_fio and policy_number:
+                            print(
+                                f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
+                            )
+                            patients_data.append(
+                                {
+                                    "patient_name": patient_fio,
+                                    "insurance_policy_number": policy_number,
+                                }
+                            )
+                        else:
+                            print(
+                                f"В PDF '{filename}' не удалось найти ФИО и/или Полис."
+                            )
 
                 except Exception as e:
                     print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
 
-            if filename.lower().endswith((".xls", ".xlsx")):
+            elif filename.lower().endswith((".xls", ".xlsx")):
                 try:
                     df = pd.read_excel(io.BytesIO(file_bytes), header=None)
                     header_row_index = -1

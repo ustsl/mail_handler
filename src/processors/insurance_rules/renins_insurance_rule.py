@@ -1,5 +1,5 @@
 import io
-import re  # <<<=== Добавляем импорт для регулярных выражений
+import re
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
@@ -34,11 +34,11 @@ def renins_insurance_rule(
 
     if attachments and cleaned_text:
 
-        is_pdf_attached = any(
-            filename.lower().endswith(".pdf") for filename, _ in attachments
+        is_document_attached = any(
+            filename.lower().endswith((".pdf", ".doc")) for filename, _ in attachments
         )
 
-        if is_pdf_attached:
+        if is_document_attached:
             patient_fio = ""
             policy_number = ""
 
