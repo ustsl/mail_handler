@@ -8,6 +8,20 @@ import pandas as pd
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
+import re
+import io
+import pandas as pd
+from bs4 import BeautifulSoup
+
+
+def fix_encoding(text: str) -> str:
+    """
+    Исправляет текст, который был в кодировке KOI8-R, но ошибочно прочитан как CP1251.
+    """
+    try:
+        return text.encode("cp1251").decode("koi8-r")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
 
 
 def ingosstrah_insurance_rule(
@@ -18,14 +32,17 @@ def ingosstrah_insurance_rule(
 ) -> FormData:
     form_data = FormData()
 
+    corrected_subject = fix_encoding(subject)
+
     cleaned_text = ""
     if content:
         soup = BeautifulSoup(content, "html.parser")
         raw_text = soup.get_text(separator="\n")
-        cleaned_text = clean_message_text(raw_text)
+        corrected_text = fix_encoding(raw_text)
+        cleaned_text = clean_message_text(corrected_text)
 
     form_data.add_field("insurance_email_sender", sender)
-    form_data.add_field("subject", subject)
+    form_data.add_field("subject", corrected_subject)
     form_data.add_field("original_message", cleaned_text)
 
     patients_data = []
