@@ -40,6 +40,8 @@ def ingosstrah_insurance_rule(
         raw_text = soup.get_text(separator="\n")
         corrected_text = fix_encoding(raw_text)
         cleaned_text = clean_message_text(corrected_text)
+    if subject:
+        subject = fix_encoding(subject)
 
     form_data.add_field("insurance_email_sender", sender)
     form_data.add_field("subject", corrected_subject)
