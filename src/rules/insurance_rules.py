@@ -10,6 +10,7 @@ from src.processors.insurance_rules.sovcom_insurance_rule import sovcom_insuranc
 from src.processors.insurance_rules.rgs_insurance_rule import rgs_insurance_rule
 from src.processors.insurance_rules.reso_insurance_rule import reso_insurance_rule
 from src.processors.insurance_rules.luchi_insurance_rule import luchi_insurance_rule
+from src.processors.insurance_rules.zetta_insurance_rule import zetta_insurance_rule
 
 from src.query_worker.schema import QueryRules
 from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
@@ -24,7 +25,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": ingosstrah_insurance_rule,
+            "processor": zetta_insurance_rule,
         },
         "attachment_field": True,
     },
@@ -156,7 +157,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": INSURANCE_URL,
             "headers": insurance_headers,
-            "processor": common_insurance_rule,
+            "processor": zetta_insurance_rule,
         },
         "attachment_field": True,
     },
