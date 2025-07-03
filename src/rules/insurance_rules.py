@@ -18,7 +18,7 @@ from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
 rules = [
     {
         "rule": {
-            "sender": "@imvo.site",
+            "sender": "@ustsl.ru",
         },
         "action": {
             "type": INSURANCE_QUERY_TYPE,

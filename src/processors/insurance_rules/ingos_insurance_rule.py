@@ -16,10 +16,25 @@ from bs4 import BeautifulSoup
 
 def fix_encoding(text: str) -> str:
     """
-    Исправляет текст, который был в кодировке KOI8-R, но ошибочно прочитан как CP1251.
+    Автоматически определяет и исправляет текст, который был в кодировке KOI8-R,
+    но ошибочно прочитан как CP1251. Если текст не похож на искаженный,
+    он возвращается без изменений.
     """
+    if not text:
+        return ""
+
     try:
-        return text.encode("cp1251").decode("koi8-r")
+        re_encoded_text = text.encode("cp1251").decode("koi8-r")
+        cyrillic_chars_re = re.compile(r"[а-яА-ЯёЁ]")
+
+        original_cyrillic_count = len(cyrillic_chars_re.findall(text))
+        re_encoded_cyrillic_count = len(cyrillic_chars_re.findall(re_encoded_text))
+
+        if re_encoded_cyrillic_count > original_cyrillic_count + 5:
+            return re_encoded_text
+        else:
+            return text
+
     except (UnicodeEncodeError, UnicodeDecodeError):
         return text
 
@@ -58,18 +73,28 @@ def ingosstrah_insurance_rule(
                     pdf_text = extract_text_from_pdf(file_bytes)
 
                     if pdf_text:
-                        fio_pattern = r"ФИО Дата\nрождения\n№ Полиса Страхователь № Договора ДМС\n([А-ЯЁ\s]+?)\s+\d{2}\.\d{2}\.\d{4}"
+
+                        patient_fio = None
+                        policy_number = None
+
+                        fio_pattern = (
+                            r"№\s+Договора\s+ДМС\s*\n([\s\S]+?)\s*\d{2}\.\d{2}\.\d{4}"
+                        )
                         fio_match = re.search(fio_pattern, pdf_text)
 
-                        policy_pattern = (
-                            r"№ Договора ДМС[\s\S]+?(\d+-\d+)\s*\nОплата будет"
-                        )
-                        policy_match = re.search(policy_pattern, pdf_text)
-
-                        if fio_match and policy_match:
+                        if fio_match:
                             patient_fio = fio_match.group(1).replace("\n", " ").strip()
-                            policy_number = policy_match.group(1).strip()
 
+                        end_marker = "Оплата будет"
+                        end_marker_pos = pdf_text.find(end_marker)
+
+                        if end_marker_pos != -1:
+                            search_area = pdf_text[:end_marker_pos]
+                            policy_matches = re.findall(r"\b(\d+-\d+)\b", search_area)
+                            if policy_matches:
+                                policy_number = policy_matches[-1]
+
+                        if patient_fio and policy_number:
                             patients_data.append(
                                 {
                                     "patient_name": patient_fio,
