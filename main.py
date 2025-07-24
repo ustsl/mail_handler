@@ -24,7 +24,7 @@ async def main():
         settings=insurance_mail_settings,
         worker=check_mail,
         rules=insurance_rules,
-        interval=5,
+        interval=11,
     )
 
     await asyncio.gather(work_poller, support_poller)

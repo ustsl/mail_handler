@@ -1,5 +1,3 @@
-import asyncio
-
 from src.email_worker.lib.mail_client import MailClient
 from src.email_worker.lib.mail_parser import EmailParser
 from src.email_worker.schema import MailCheckSettings
@@ -7,7 +5,7 @@ from src.query_worker.request_sender import send_request
 from src.query_worker.schema import QueryRules
 
 
-def apply_rule_action(
+async def apply_rule_action(
     rule,
     email_body: str,
     email_subject: str,
@@ -15,53 +13,49 @@ def apply_rule_action(
     attachments: list[tuple[str, bytes]] | None = None,
 ):
     """
-    Обработка действия правила:
-      - Передаёт тело письма и вложения через процессор (если он задан)
-      - Выполняет HTTP-запрос с обработанным телом и вложениями.
+    Выполняет действие, ЛОГГИРУЕТ результат и возвращает кортеж:
+    (True, url) в случае успеха.
+    (False, url, exception) в случае ошибки.
     """
-
     processed_body = (
         rule.action.processor(email_body, email_subject, email_sender, attachments)
         if rule.action.processor
         else email_body
     )
 
-    print(
-        f"Выполняется запрос {rule.action.type} к {rule.action.url} с обработанным телом."
-    )
-    if attachments:
-        print(f"К запросу прикреплено {len(attachments)} файлов.")
+    url = rule.action.url
 
-    # Выполнение асинхронного запроса в синхронном контексте
-    result = asyncio.run(
-        send_request(
+    try:
+        print(f"Подготовка запроса {rule.action.type} к {url}...")
+
+        response = await send_request(
             rule.action.type,
-            rule.action.url,
+            url,
             headers=rule.action.headers,
             data=processed_body,
         )
-    )
-    print(rule.action.url)
-    print("Результат запроса:", result)
+
+        print(f"Запрос на {url} успешно выполнен.")
+        print(f"  -> Ответ от сервера: {response}")
+
+        return (True, url, None)
+
+    except Exception as e:
+        print(f"  [ОШИБКА ЗАПРОСА] При обращении к {url} произошла ошибка: {e}")
+        return (False, url, e)
 
 
-def check_mail(settings: MailCheckSettings, rules: QueryRules):
+async def check_mail(settings: MailCheckSettings, rules: QueryRules):
     """
-    Функция для проверки и обработки новой почты.
-    Для каждого письма:
-      - Извлекает тело и, если нужно, вложения.
-      - Если письмо соответствует правилу, выполняет действие,
-        передавая вложения, если правило этого требует.
+    Асинхронная функция, которая находит ПЕРВОЕ подходящее правило,
+    выполняет его и прекращает дальнейший поиск.
     """
+    client = MailClient(settings)
     try:
-        client = MailClient(settings)
         client.connect()
-
         mail_ids = client.search_unseen()
         if mail_ids:
             print(f"Найдено {len(mail_ids)} новых писем.")
-
-        can_be_marked_as_read = True
 
         for mail_id in mail_ids:
             msg = client.fetch_email(mail_id)
@@ -72,23 +66,19 @@ def check_mail(settings: MailCheckSettings, rules: QueryRules):
                 if sender_raw
                 else "Неизвестный отправитель"
             )
-
             print("\nНовая почта:")
-            print("Тема:", subject)
-            print("Отправитель:", sender)
-
+            print("  Тема:", subject)
+            print("  Отправитель:", sender)
             body = EmailParser.get_body(msg)
 
-            is_actual_rule = False
+            rule_found_and_processed = False
 
             for rule in rules.root:
-
                 subject_match = (
                     rule.rule.subject.lower() in subject.lower()
                     if rule.rule.subject
                     else True
                 )
-
                 sender_match = (
                     (
                         rule.rule.sender.lower() in sender.lower()
@@ -100,36 +90,37 @@ def check_mail(settings: MailCheckSettings, rules: QueryRules):
                 )
 
                 if subject_match and sender_match:
-                    is_actual_rule = True
                     print(
-                        f"Письмо соответствует правилу (attachments: {rule.attachment_field}). Выполняем действие:"
+                        f"  Найдено первое соответствие правилу (URL: {rule.action.url}). Выполняем..."
                     )
 
                     attachments = None
-
                     if rule.attachment_field:
-                        print("Правило требует обработки вложений. Извлекаем файлы...")
                         attachments = EmailParser.get_attachments(msg)
-                        if attachments:
-                            print(
-                                f"Найдено {len(attachments)} вложений: {[att[0] for att in attachments]}"
-                            )
-                        else:
-                            print("Вложений в письме не найдено.")
 
-                    try:
-                        apply_rule_action(rule, body, subject, sender, attachments)
-                    except Exception as e:
-                        print(f"Произошла ошибка")
-                        can_be_marked_as_read = False
+                    success, url, error = await apply_rule_action(
+                        rule, body, subject, sender, attachments
+                    )
+                    if success:
+                        print("  Действие выполнено успешно. Помечаем как прочитанное.")
+                        client.mark_as_seen(mail_id)
+                    else:
+                        print(
+                            f"  [ОШИБКА] Действие для URL {url} не выполнено: {error}"
+                        )
+                        print(
+                            "  Письмо не будет отмечено как прочитанное из-за ошибки."
+                        )
 
-            if can_be_marked_as_read:
-                client.mark_as_seen(mail_id)
+                    rule_found_and_processed = True
+                    break
 
-            if not is_actual_rule:
-                print(f"Письмо от {sender} не соответствует ни одного из правил")
-
-        client.logout()
+            if not rule_found_and_processed:
+                print(f"  Письмо от {sender} не соответствует ни одному из правил.")
 
     except Exception as e:
-        print(f"Произошла ошибка: {e}")
+        print(
+            f"[КРИТИЧЕСКАЯ ОШИБКА] Произошла непредвиденная ошибка в работе сервиса: {e}"
+        )
+    finally:
+        client.logout()

@@ -32,4 +32,7 @@ class MailClient:
         self.connection.store(mail_id, "+FLAGS", "\\Seen")
 
     def logout(self):
-        self.connection.logout()
+        if self.connection:
+            self.connection.close()
+            self.connection.logout()
+            self.connection = None
