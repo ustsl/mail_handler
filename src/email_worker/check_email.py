@@ -91,7 +91,7 @@ async def check_mail(settings: MailCheckSettings, rules: QueryRules):
 
                 if subject_match and sender_match:
                     print(
-                        f"  Найдено первое соответствие правилу (URL: {rule.action.url}). Выполняем..."
+                        f"  Найдено соответствие правилу (URL: {rule.action.url}). Выполняем..."
                     )
 
                     attachments = None
