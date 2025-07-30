@@ -3,6 +3,7 @@
 
 from src.processors.prodoctorov import prodoctorov_parse_email
 from src.processors.sber import sber_parse_email
+from src.processors.napopravku import napopravku_parse_email
 from src.query_worker.schema import QueryRules
 from src.settings import CRM_QUERY_TYPE, CRM_URL, crm_headers
 
@@ -19,12 +20,30 @@ The actions describe:
 
 rules = [
     {
-        "rule": {"sender": "@imvo.site", "subject": "запись"},
+        "rule": {"sender": "@imvo.site", "subject": "Заявка"},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,
             "headers": crm_headers,
-            "processor": prodoctorov_parse_email,
+            "processor": napopravku_parse_email,
+        },
+    },
+    {
+        "rule": {"sender": "info@smt-clinic.ru", "subject": "Заявка"},
+        "action": {
+            "type": CRM_QUERY_TYPE,
+            "url": CRM_URL,
+            "headers": crm_headers,
+            "processor": napopravku_parse_email,
+        },
+    },
+    {
+        "rule": {"sender": "notify@napopravku.ru", "subject": "Заявка"},
+        "action": {
+            "type": CRM_QUERY_TYPE,
+            "url": CRM_URL,
+            "headers": crm_headers,
+            "processor": napopravku_parse_email,
         },
     },
     {
