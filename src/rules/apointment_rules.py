@@ -20,7 +20,7 @@ The actions describe:
 
 rules = [
     {
-        "rule": {"sender": "@imvo.site", "subject": "Заявка"},
+        "rule": {"sender": "@imvo.site", "subject": ""},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,
@@ -29,7 +29,7 @@ rules = [
         },
     },
     {
-        "rule": {"sender": "info@smt-clinic.ru", "subject": "Заявка"},
+        "rule": {"sender": "info@smt-clinic.ru", "subject": ""},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,
@@ -38,7 +38,7 @@ rules = [
         },
     },
     {
-        "rule": {"sender": "notify@napopravku.ru", "subject": "Заявка"},
+        "rule": {"sender": "notify@napopravku.ru", "subject": ""},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,
