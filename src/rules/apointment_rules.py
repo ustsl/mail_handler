@@ -46,15 +46,15 @@ rules = [
             "processor": napopravku_parse_email,
         },
     },
-    # {
-    #     "rule": {"sender": "info@medflex.ru", "subject": "запись"},
-    #     "action": {
-    #         "type": CRM_QUERY_TYPE,
-    #         "url": CRM_URL,
-    #         "headers": crm_headers,
-    #         "processor": prodoctorov_parse_email,
-    #     },
-    # },
+    {
+        "rule": {"sender": "info@medflex.ru", "subject": "запись"},
+        "action": {
+            "type": CRM_QUERY_TYPE,
+            "url": CRM_URL,
+            "headers": crm_headers,
+            "processor": prodoctorov_parse_email,
+        },
+    },
     {
         "rule": {"sender": "clinic-online@sberhealth.ru", "subject": ""},
         "action": {
