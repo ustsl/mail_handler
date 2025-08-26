@@ -3,6 +3,7 @@ from src.email_worker.lib.mail_parser import EmailParser
 from src.email_worker.schema import MailCheckSettings
 from src.query_worker.request_sender import send_request
 from src.query_worker.schema import QueryRules
+from src.outbox.producer import enqueue_json_request
 
 
 async def apply_rule_action(
@@ -12,11 +13,6 @@ async def apply_rule_action(
     email_sender: str,
     attachments: list[tuple[str, bytes]] | None = None,
 ):
-    """
-    Выполняет действие, ЛОГГИРУЕТ результат и возвращает кортеж:
-    (True, url) в случае успеха.
-    (False, url, exception) в случае ошибки.
-    """
     processed_body = (
         rule.action.processor(email_body, email_subject, email_sender, attachments)
         if rule.action.processor
@@ -24,9 +20,18 @@ async def apply_rule_action(
     )
 
     url = rule.action.url
-
     try:
         print(f"Подготовка запроса {rule.action.type} к {url}...")
+
+        if isinstance(processed_body, dict):
+            await enqueue_json_request(
+                method=rule.action.type,
+                url=url,
+                headers=rule.action.headers,
+                json_body=processed_body,
+            )
+            print("Задание (JSON) поставлено в очередь.")
+            return (True, url, None)
 
         response = await send_request(
             rule.action.type,
@@ -34,10 +39,8 @@ async def apply_rule_action(
             headers=rule.action.headers,
             data=processed_body,
         )
-
         print(f"Запрос на {url} успешно выполнен.")
         print(f"  -> Ответ от сервера: {response}")
-
         return (True, url, None)
 
     except Exception as e:
@@ -46,10 +49,6 @@ async def apply_rule_action(
 
 
 async def check_mail(settings: MailCheckSettings, rules: QueryRules):
-    """
-    Асинхронная функция, которая находит ПЕРВОЕ подходящее правило,
-    выполняет его и прекращает дальнейший поиск.
-    """
     client = MailClient(settings)
     try:
         client.connect()

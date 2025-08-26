@@ -51,6 +51,5 @@ INSURANCE_TOKEN = os.getenv("INSURANCE_TOKEN")
 insurance_headers = {"Authorization": INSURANCE_TOKEN}
 
 
-### OTHER
-
 CLIENT_EMAIL = os.getenv("CLIENT_EMAIL")
+RABBIT_URL = os.getenv("RABBIT_URL")

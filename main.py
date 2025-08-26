@@ -1,6 +1,5 @@
 import asyncio
 
-# Ваши импорты
 from src.email_worker.check_email import check_mail
 from src.poll import poll_mail
 from src.rules.apointment_rules import rules as appointment_rules
@@ -10,26 +9,30 @@ from src.settings import (
     insurance_mail_settings,
 )
 
+
+from src.outbox.worker import main as queue_worker_main
+
 RETRY_DELAY = 60
 
 
-async def run_poller_safely(name, poll_func, **kwargs):
+async def run_task(name, func, **kwargs):
+    """Запускает задачу, при падении пытается поднять её снова."""
     while True:
         try:
-            await poll_func(**kwargs)
+            await func(**kwargs)
         except Exception as e:
-            print(f"[КРИТИЧЕСКАЯ ОШИБКА] Задача '{name}' упала с ошибкой: {e}")
-            print(f"Попробую перезапустить через {RETRY_DELAY} секунд...")
+            print(f"[КРИТИЧЕСКАЯ ОШИБКА] '{name}' упал: {e}")
+            print(f"Перезапуск через {RETRY_DELAY} секунд...")
             await asyncio.sleep(RETRY_DELAY)
 
 
 async def main():
-    print("Launch email asyncio server...")
+    print("Запуск всех процессов...")
 
     work_poller_task = asyncio.create_task(
-        run_poller_safely(
-            name="work_poller",
-            poll_func=poll_mail,
+        run_task(
+            "work_poller",
+            poll_mail,
             settings=appointment_mail_settings,
             worker=check_mail,
             rules=appointment_rules,
@@ -38,9 +41,9 @@ async def main():
     )
 
     support_poller_task = asyncio.create_task(
-        run_poller_safely(
-            name="support_poller",
-            poll_func=poll_mail,
+        run_task(
+            "support_poller",
+            poll_mail,
             settings=insurance_mail_settings,
             worker=check_mail,
             rules=insurance_rules,
@@ -48,11 +51,17 @@ async def main():
         )
     )
 
-    await asyncio.gather(work_poller_task, support_poller_task)
+    queue_task = asyncio.create_task(run_task("queue_worker", queue_worker_main))
+
+    await asyncio.gather(
+        work_poller_task,
+        support_poller_task,
+        queue_task,
+    )
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nСервер остановлен.")
+        print("\nСервер остановлен пользователем.")
