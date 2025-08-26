@@ -15,6 +15,7 @@ from src.processors.insurance_rules.ugsk_insurance_rule import ugsk_insurance_ru
 from src.processors.insurance_rules.energogarant_insurance_rule import (
     energogarant_insurance_rule,
 )
+from src.processors.insurance_rules.sber_insurance_rule import sber_insurance_rule
 
 from src.query_worker.schema import QueryRules
 from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
@@ -29,7 +30,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": energogarant_insurance_rule,
+            "processor": sber_insurance_rule,
         },
         "attachment_field": True,
     },
@@ -234,6 +235,18 @@ rules = [
             "url": INSURANCE_URL,
             "headers": insurance_headers,
             "processor": common_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
+        "rule": {
+            "sender": "@sberhealth.ru",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": INSURANCE_URL,
+            "headers": insurance_headers,
+            "processor": sber_insurance_rule,
         },
         "attachment_field": True,
     },
