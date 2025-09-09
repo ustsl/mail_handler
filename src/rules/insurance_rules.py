@@ -12,6 +12,8 @@ from src.processors.insurance_rules.reso_insurance_rule import reso_insurance_ru
 from src.processors.insurance_rules.luchi_insurance_rule import luchi_insurance_rule
 from src.processors.insurance_rules.zetta_insurance_rule import zetta_insurance_rule
 from src.processors.insurance_rules.ugsk_insurance_rule import ugsk_insurance_rule
+from src.processors.insurance_rules.akbars_insurance_rule import akbars_insurance_rule
+
 from src.processors.insurance_rules.energogarant_insurance_rule import (
     energogarant_insurance_rule,
 )
@@ -30,7 +32,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": sovcom_insurance_rule,
+            "processor": akbars_insurance_rule,
         },
         "attachment_field": True,
     },
@@ -247,6 +249,18 @@ rules = [
             "url": INSURANCE_URL,
             "headers": insurance_headers,
             "processor": sber_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
+        "rule": {
+            "sender": "@akbarsmed.ru",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": f"{INSURANCE_URL}",
+            "headers": insurance_headers,
+            "processor": akbars_insurance_rule,
         },
         "attachment_field": True,
     },
