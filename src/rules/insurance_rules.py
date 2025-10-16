@@ -17,7 +17,10 @@ from src.processors.insurance_rules.akbars_insurance_rule import akbars_insuranc
 from src.processors.insurance_rules.energogarant_insurance_rule import (
     energogarant_insurance_rule,
 )
-from src.processors.insurance_rules.sber_insurance_rule import sber_insurance_rule
+from src.processors.insurance_rules.sber_insurance_rule import (
+    sber_insurance_rule,
+    sber_ins_insurance_rule,
+)
 
 from src.query_worker.schema import QueryRules
 from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
@@ -249,6 +252,16 @@ rules = [
             "url": INSURANCE_URL,
             "headers": insurance_headers,
             "processor": sber_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
+        "rule": {"sender": "@sberins.ru"},
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": INSURANCE_URL,
+            "headers": insurance_headers,
+            "processor": sber_ins_insurance_rule,
         },
         "attachment_field": True,
     },
