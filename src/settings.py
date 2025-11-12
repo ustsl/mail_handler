@@ -49,6 +49,8 @@ INSURANCE_URL = os.getenv("INSURANCE_URL")
 INSURANCE_QUERY_TYPE = os.getenv("INSURANCE_QUERY_TYPE")
 INSURANCE_TOKEN = os.getenv("INSURANCE_TOKEN")
 
+REDIS_URL_ENV = os.getenv("REDIS_URL")
+
 insurance_headers = {"Authorization": INSURANCE_TOKEN}
 
 
@@ -58,6 +60,6 @@ RABBIT_URL = os.getenv("RABBIT_URL")
 
 ### REDIS / STORAGE SECTION
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", REDIS_URL_ENV)
 TEMP_STORAGE_ROOT = Path(os.getenv("TEMP_STORAGE_ROOT", "temp"))
 EVENT_TTL_SECONDS = int(os.getenv("EVENT_TTL_SECONDS", str(15 * 60)))
