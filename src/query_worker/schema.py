@@ -35,9 +35,11 @@ class Action(BaseModel):
 
 
 class Rule(BaseModel):
+    name: Optional[str] = None
     rule: Condition
     action: Action
     attachment_field: Optional[bool] = None
+    permanent_file: bool = False
 
 
 class QueryRules(RootModel[List[Rule]]):

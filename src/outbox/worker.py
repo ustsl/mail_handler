@@ -24,7 +24,9 @@ def _next_ttl(n: int) -> int:
 
 async def _republish_retry(ch: aio_pika.Channel, payload: dict) -> None:
     ttl = _next_ttl(int(payload.get("retry_count", 0)))
-    dlx = await ch.get_exchange(EXCHANGE_DLX)
+    dlx = await ch.declare_exchange(
+        EXCHANGE_DLX, aio_pika.ExchangeType.DIRECT, durable=True
+    )
     msg = aio_pika.Message(
         body=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
         delivery_mode=aio_pika.DeliveryMode.PERSISTENT,

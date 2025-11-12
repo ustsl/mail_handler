@@ -2,8 +2,11 @@ import re
 
 from bs4 import BeautifulSoup
 
-from src.processors.utils.formatters import (clean_message_text, extract_field,
-                                             format_phone)
+from src.processors.utils.formatters import (
+    clean_message_text,
+    extract_field,
+    format_phone,
+)
 
 
 def prodoctorov_parse_email(html_content, subject, sender, attachments):
@@ -49,5 +52,7 @@ def prodoctorov_parse_email(html_content, subject, sender, attachments):
         },
         "source": "prodoctorov",
     }
+
+    print(result)
 
     return result

@@ -1,10 +1,65 @@
+import io
 import re
+import zipfile
 from aiohttp import FormData
 from bs4 import BeautifulSoup
-
+import pandas as pd
+from src.processors.utils.universal_search_table_func import universal_search_table_func
 from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.formatters import clean_message_text
+
+
+def parse_rgs_xls(file_bytes: bytes):
+    """
+    Извлекает данные пациентов из XLS Росгосстраха (фиксированный шаблон).
+    Возвращает список словарей с полями patient_name и insurance_policy_number.
+    """
+    patients = []
+    df = pd.read_excel(io.BytesIO(file_bytes), header=None)
+
+    # Находим строку, где начинается таблица
+    start_row = None
+    for i, row in df.iterrows():
+        if "ФИО" in row.astype(str).values.tolist():
+            start_row = i
+            break
+    if start_row is None:
+        return []
+
+    # Берём только нужные столбцы: ФИО и Полис
+    data = df.iloc[start_row + 1 :, :]  # всё после заголовков
+    for _, row in data.iterrows():
+        fio = str(row[1]).strip() if len(row) > 1 else ""
+        policy = str(row.iloc[-1]).strip() if len(row) > 1 else ""
+
+        if fio and policy and fio != "nan" and policy != "nan":
+            patients.append(
+                {
+                    "patient_name": fio,
+                    "insurance_policy_number": policy,
+                }
+            )
+
+    return patients
+
+
+def _extract_first_spreadsheet_from_zip(
+    file_bytes: bytes, password: str = "rgs"
+) -> tuple[str, bytes] | None:
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
+            for info in archive.infolist():
+                if info.is_dir():
+                    continue
+                if info.filename.lower().endswith((".xls", ".xlsx")):
+                    data = archive.read(info, pwd=password.encode())
+                    return info.filename, data
+    except RuntimeError as e:
+        print(f"Ошибка распаковки ZIP (пароль?): {e}")
+    except zipfile.BadZipFile as e:
+        print(f"Некорректный ZIP-файл: {e}")
+    return None
 
 
 def rgs_insurance_rule(
@@ -38,7 +93,9 @@ def rgs_insurance_rule(
                 filename=filename,
             )
 
-            if filename.lower().endswith(".pdf"):
+            lowered_name = filename.lower()
+
+            if lowered_name.endswith(".pdf"):
                 try:
                     pdf_text = extract_text_from_pdf(file_bytes)
 
@@ -72,6 +129,30 @@ def rgs_insurance_rule(
                 except Exception as e:
                     print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
 
+            if lowered_name.endswith((".xls", ".xlsx")):
+                try:
+                    df = pd.read_excel(io.BytesIO(file_bytes), header=None)
+                    data = universal_search_table_func(
+                        df, fio_syn=["ФИО"], polis_syn=["Полис"]
+                    )
+                    patients_data.extend(data)
+                except Exception as e:
+                    print(f"Произошла ошибка при обработке файла {filename}: {e}")
+
+            if lowered_name.endswith(".zip"):
+                extracted = _extract_first_spreadsheet_from_zip(file_bytes)
+                if extracted:
+                    inner_name, inner_bytes = extracted
+                    try:
+                        df = pd.read_excel(io.BytesIO(inner_bytes), header=None)
+                        data = universal_search_table_func(
+                            df, fio_syn=["ФИО"], polis_syn=["Полис"]
+                        )
+                        patients_data.extend(data)
+                    except Exception as e:
+                        print(
+                            f"Произошла ошибка при обработке вложенного файла {inner_name}: {e}"
+                        )
     finalize_and_add_patients_json(form_data, patients_data)
 
     return form_data

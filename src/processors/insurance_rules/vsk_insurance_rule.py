@@ -4,7 +4,6 @@ import io
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
-import pypdf
 
 
 from src.processors.utils.pdf_parser import extract_text_from_pdf

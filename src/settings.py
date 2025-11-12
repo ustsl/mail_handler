@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -53,3 +54,10 @@ insurance_headers = {"Authorization": INSURANCE_TOKEN}
 
 CLIENT_EMAIL = os.getenv("CLIENT_EMAIL")
 RABBIT_URL = os.getenv("RABBIT_URL")
+
+
+### REDIS / STORAGE SECTION
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+TEMP_STORAGE_ROOT = Path(os.getenv("TEMP_STORAGE_ROOT", "temp"))
+EVENT_TTL_SECONDS = int(os.getenv("EVENT_TTL_SECONDS", str(15 * 60)))

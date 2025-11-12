@@ -28,6 +28,7 @@ from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
 
 rules = [
     {
+        "name": "insurance_imvo_rgs",
         "rule": {
             "sender": "@imvo.site",
         },
@@ -35,11 +36,12 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": reso_insurance_rule,
+            "processor": rgs_insurance_rule,
         },
         "attachment_field": True,
     },
     {
+        "name": "insurance_energogarant",
         "rule": {
             "sender": "@energogarant.ru",
         },
@@ -52,6 +54,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_sogaz",
         "rule": {
             "sender": "@sogaz.ru",
         },
@@ -62,8 +65,10 @@ rules = [
             "processor": sogaz_insurance_rule,
         },
         "attachment_field": True,
+        "permanent_file": True,
     },
     {
+        "name": "insurance_alfastrah",
         "rule": {
             "sender": "@alfastrah.ru",
         },
@@ -76,6 +81,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_borisovaks",
         "rule": {
             "sender": "borisovaks94@mail.ru",
         },
@@ -88,6 +94,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_ingos",
         "rule": {
             "sender": "@ingos.ru",
         },
@@ -100,6 +107,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_vsk",
         "rule": {
             "sender": "@vsk.ru",
         },
@@ -112,6 +120,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_sovcom",
         "rule": {
             "sender": "@sovcomins.ru",
         },
@@ -124,6 +133,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_rgs",
         "rule": {
             "sender": "@rgs.ru",
         },
@@ -136,6 +146,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_absolut",
         "rule": {
             "sender": "@absolutins.ru",
         },
@@ -148,6 +159,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_luchi",
         "rule": {
             "sender": "@luchi.ru",
         },
@@ -160,6 +172,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_oprotono",
         "rule": {
             "sender": "oprotono@gmail.com",
         },
@@ -172,6 +185,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_zetta",
         "rule": {
             "sender": "@zettains.ru",
         },
@@ -184,6 +198,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_reso",
         "rule": {
             "sender": "@reso.ru",
         },
@@ -196,6 +211,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_renins",
         "rule": {
             "sender": "@renins.com",
         },
@@ -208,6 +224,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_invitro",
         "rule": {
             "sender": "@invitro.ru",
         },
@@ -220,6 +237,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_ugsk",
         "rule": {
             "sender": "@ugsk.ru",
         },
@@ -232,6 +250,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_crosshub",
         "rule": {
             "sender": "@crosshub.ru",
         },
@@ -244,6 +263,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_sberhealth",
         "rule": {
             "sender": "@sberhealth.ru",
         },
@@ -256,6 +276,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_sberins",
         "rule": {"sender": "@sberins.ru"},
         "action": {
             "type": INSURANCE_QUERY_TYPE,
@@ -266,6 +287,7 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_akbars",
         "rule": {
             "sender": "@akbarsmed.ru",
         },

@@ -4,14 +4,9 @@ from aiohttp import FormData
 from bs4 import BeautifulSoup
 import pandas as pd
 
-
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
-import re
-import io
-import pandas as pd
-from bs4 import BeautifulSoup
 
 
 def fix_encoding(text: str) -> str:

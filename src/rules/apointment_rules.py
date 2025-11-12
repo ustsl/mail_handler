@@ -20,15 +20,17 @@ The actions describe:
 
 rules = [
     {
+        "name": "prodoctorov_imvo",
         "rule": {"sender": "@imvo.site", "subject": ""},
         "action": {
             "type": CRM_QUERY_TYPE,
             "url": CRM_URL,
             "headers": crm_headers,
-            "processor": napopravku_parse_email,
+            "processor": prodoctorov_parse_email,
         },
     },
     {
+        "name": "napopravku_internal",
         "rule": {"sender": "info@smt-clinic.ru", "subject": ""},
         "action": {
             "type": CRM_QUERY_TYPE,
@@ -38,6 +40,7 @@ rules = [
         },
     },
     {
+        "name": "napopravku_notify",
         "rule": {"sender": "notify@napopravku.ru", "subject": ""},
         "action": {
             "type": CRM_QUERY_TYPE,
@@ -47,6 +50,7 @@ rules = [
         },
     },
     {
+        "name": "prodoctorov_medflex",
         "rule": {"sender": "info@medflex.ru", "subject": "запись"},
         "action": {
             "type": CRM_QUERY_TYPE,
@@ -56,6 +60,7 @@ rules = [
         },
     },
     {
+        "name": "sber_clinic_online",
         "rule": {"sender": "clinic-online@sberhealth.ru", "subject": ""},
         "action": {
             "type": CRM_QUERY_TYPE,
@@ -65,6 +70,7 @@ rules = [
         },
     },
     {
+        "name": "sber_keyword",
         "rule": {"sender": "info@smt-clinic.ru", "subject": "СберЗдоровье"},
         "action": {
             "type": CRM_QUERY_TYPE,
