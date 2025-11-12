@@ -10,48 +10,28 @@ from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.formatters import clean_message_text
 
 
-def parse_rgs_xls(file_bytes: bytes):
-    """
-    Извлекает данные пациентов из XLS Росгосстраха (фиксированный шаблон).
-    Возвращает список словарей с полями patient_name и insurance_policy_number.
-    """
-    patients = []
-    df = pd.read_excel(io.BytesIO(file_bytes), header=None)
-
-    # Находим строку, где начинается таблица
-    start_row = None
-    for i, row in df.iterrows():
-        if "ФИО" in row.astype(str).values.tolist():
-            start_row = i
-            break
-    if start_row is None:
-        return []
-
-    # Берём только нужные столбцы: ФИО и Полис
-    data = df.iloc[start_row + 1 :, :]  # всё после заголовков
-    for _, row in data.iterrows():
-        fio = str(row[1]).strip() if len(row) > 1 else ""
-        policy = str(row.iloc[-1]).strip() if len(row) > 1 else ""
-
-        if fio and policy and fio != "nan" and policy != "nan":
-            patients.append(
-                {
-                    "patient_name": fio,
-                    "insurance_policy_number": policy,
-                }
-            )
-
-    return patients
-
-
 def _extract_first_spreadsheet_from_zip(
     file_bytes: bytes, password: str = "rgs"
 ) -> tuple[str, bytes] | None:
+    ZIP_MAX_COMPRESSED_BYTES = 5 * 1024 * 1024
+    ZIP_MAX_UNCOMPRESSED_BYTES = 20 * 1024 * 1024
+
+    if len(file_bytes) > ZIP_MAX_COMPRESSED_BYTES:
+        print("ZIP-файл превышает лимит 5 МБ, пропускаем вложение.")
+        return None
+
+    total_uncompressed = 0
     try:
         with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
             for info in archive.infolist():
                 if info.is_dir():
                     continue
+                total_uncompressed += info.file_size
+                if total_uncompressed > ZIP_MAX_UNCOMPRESSED_BYTES:
+                    print(
+                        "Объём распаковки превышает безопасный лимит, прекращаем чтение."
+                    )
+                    return None
                 if info.filename.lower().endswith((".xls", ".xlsx")):
                     data = archive.read(info, pwd=password.encode())
                     return info.filename, data
