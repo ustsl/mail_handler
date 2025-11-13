@@ -1,4 +1,5 @@
 import aiohttp
+
 from src.query_worker.schema import HTTPMethod
 
 

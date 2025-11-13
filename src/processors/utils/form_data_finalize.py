@@ -1,6 +1,7 @@
 import json
+from typing import Any, Dict, List
+
 from aiohttp import FormData
-from typing import List, Dict, Any
 
 
 def finalize_and_add_patients_json(

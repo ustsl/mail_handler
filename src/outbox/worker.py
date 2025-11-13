@@ -1,18 +1,13 @@
-import os
 import json
+import os
+
 import aio_pika
 
+from src.outbox.infra import (BACKOFF_SCHEDULE, EXCHANGE_DLX, EXCHANGE_MAIN,
+                              QUEUE_MAIN, ROUTING_MAIN, ensure_infra,
+                              rkey_retry)
 from src.query_worker.request_sender import send_request
 from src.settings import RABBIT_URL
-from src.outbox.infra import (
-    EXCHANGE_MAIN,
-    EXCHANGE_DLX,
-    QUEUE_MAIN,
-    ROUTING_MAIN,
-    BACKOFF_SCHEDULE,
-    ensure_infra,
-    rkey_retry,
-)
 
 MAX_RETRIES = int(os.getenv("OUTBOUND_MAX_RETRIES", "8"))
 

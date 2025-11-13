@@ -3,9 +3,9 @@ from uuid import uuid4
 from src.email_worker.lib.mail_client import MailClient
 from src.email_worker.lib.mail_parser import EmailParser
 from src.email_worker.schema import MailCheckSettings
+from src.outbox.producer import enqueue_json_request
 from src.query_worker.request_sender import send_request
 from src.query_worker.schema import QueryRules
-from src.outbox.producer import enqueue_json_request
 from src.storage.event_registry import event_registry
 
 

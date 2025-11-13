@@ -1,5 +1,7 @@
 import re
+
 from bs4 import BeautifulSoup
+
 from src.processors.utils.formatters import clean_message_text, format_phone
 
 

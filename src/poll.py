@@ -1,5 +1,6 @@
 import asyncio
-from typing import Callable, Awaitable
+from typing import Awaitable, Callable
+
 from src.email_worker.schema import MailCheckSettings
 
 

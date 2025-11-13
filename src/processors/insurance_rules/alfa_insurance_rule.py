@@ -1,9 +1,11 @@
 import re
+
 from aiohttp import FormData
 from bs4 import BeautifulSoup
-
 from striprtf.striprtf import rtf_to_text
-from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
+
+from src.processors.utils.form_data_finalize import \
+    finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 
 

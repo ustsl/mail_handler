@@ -1,9 +1,10 @@
 import json
-import aio_pika
-from typing import Optional, Dict
+from typing import Dict, Optional
 
-from src.settings import RABBIT_URL
+import aio_pika
+
 from src.outbox.infra import EXCHANGE_MAIN, ROUTING_MAIN, ensure_infra
+from src.settings import RABBIT_URL
 
 
 async def enqueue_json_request(

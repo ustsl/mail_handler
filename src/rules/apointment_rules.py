@@ -1,9 +1,9 @@
 ### RULES FOR WORKING WITH LETTERS
 
 
+from src.processors.napopravku import napopravku_parse_email
 from src.processors.prodoctorov import prodoctorov_parse_email
 from src.processors.sber import sber_parse_email
-from src.processors.napopravku import napopravku_parse_email
 from src.query_worker.schema import QueryRules
 from src.settings import CRM_QUERY_TYPE, CRM_URL, crm_headers
 

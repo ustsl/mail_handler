@@ -9,7 +9,6 @@ import redis.asyncio as redis
 
 from src.settings import EVENT_TTL_SECONDS, REDIS_URL, TEMP_STORAGE_ROOT
 
-
 EVENT_KEY_PREFIX = "actual_ids_mail_server"
 
 
