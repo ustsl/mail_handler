@@ -1,3 +1,6 @@
+from src.processors.insurance_rules.renins_pult_insurance_rule import (
+    renins_pult_insurance_rule,
+)
 from src.processors.common_insurance import common_insurance_rule
 from src.processors.insurance_rules.akbars_insurance_rule import akbars_insurance_rule
 from src.processors.insurance_rules.alfa_insurance_rule import alfa_insurance_rule
@@ -25,7 +28,7 @@ from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
 
 rules = [
     {
-        "name": "insurance_imvo_sovcom",
+        "name": "insurance_imvo_renins_pult",
         "rule": {
             "sender": "@imvo.site",
         },
@@ -33,7 +36,20 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": sovcom_insurance_rule,
+            "processor": renins_pult_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
+        "name": "insurance_renins_pult",
+        "rule": {
+            "sender": "@mldc-nt.ru",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": f"{INSURANCE_URL}",
+            "headers": insurance_headers,
+            "processor": renins_pult_insurance_rule,
         },
         "attachment_field": True,
     },
