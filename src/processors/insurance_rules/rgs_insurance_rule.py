@@ -1,6 +1,5 @@
 import io
 import re
-import zipfile
 
 import pandas as pd
 from aiohttp import FormData
@@ -12,38 +11,8 @@ from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.universal_search_table_func import \
     universal_search_table_func
-
-
-def _extract_first_spreadsheet_from_zip(
-    file_bytes: bytes, password: str = "rgs"
-) -> tuple[str, bytes] | None:
-    ZIP_MAX_COMPRESSED_BYTES = 5 * 1024 * 1024
-    ZIP_MAX_UNCOMPRESSED_BYTES = 20 * 1024 * 1024
-
-    if len(file_bytes) > ZIP_MAX_COMPRESSED_BYTES:
-        print("ZIP-файл превышает лимит 5 МБ, пропускаем вложение.")
-        return None
-
-    total_uncompressed = 0
-    try:
-        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
-            for info in archive.infolist():
-                if info.is_dir():
-                    continue
-                total_uncompressed += info.file_size
-                if total_uncompressed > ZIP_MAX_UNCOMPRESSED_BYTES:
-                    print(
-                        "Объём распаковки превышает безопасный лимит, прекращаем чтение."
-                    )
-                    return None
-                if info.filename.lower().endswith((".xls", ".xlsx")):
-                    data = archive.read(info, pwd=password.encode())
-                    return info.filename, data
-    except RuntimeError as e:
-        print(f"Ошибка распаковки ZIP (пароль?): {e}")
-    except zipfile.BadZipFile as e:
-        print(f"Некорректный ZIP-файл: {e}")
-    return None
+from src.processors.utils.zip_extractors import \
+    _extract_first_spreadsheet_from_zip
 
 
 def rgs_insurance_rule(

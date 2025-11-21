@@ -15,6 +15,7 @@ from src.processors.insurance_rules.renins_insurance_rule import renins_insuranc
 from src.processors.insurance_rules.reso_insurance_rule import reso_insurance_rule
 from src.processors.insurance_rules.rgs_insurance_rule import rgs_insurance_rule
 from src.processors.insurance_rules.sber_insurance_rule import (
+    sber_digital_assistant_insurance_rule,
     sber_ins_insurance_rule,
     sber_insurance_rule,
 )
@@ -22,7 +23,10 @@ from src.processors.insurance_rules.sogaz_insurance_rule import sogaz_insurance_
 from src.processors.insurance_rules.sovcom_insurance_rule import sovcom_insurance_rule
 from src.processors.insurance_rules.ugsk_insurance_rule import ugsk_insurance_rule
 from src.processors.insurance_rules.vsk_insurance_rule import vsk_insurance_rule
-from src.processors.insurance_rules.zetta_insurance_rule import zetta_insurance_rule
+from src.processors.insurance_rules.zetta_insurance_rule import (
+    zetta_insurance_rule,
+    zetta_pulse_insurance_rule,
+)
 from src.query_worker.schema import QueryRules
 from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
 
@@ -36,7 +40,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": renins_pult_insurance_rule,
+            "processor": sber_digital_assistant_insurance_rule,
         },
         "attachment_field": True,
     },
@@ -198,6 +202,19 @@ rules = [
         "attachment_field": True,
     },
     {
+        "name": "insurance_zetta_pulse",
+        "rule": {
+            "sender": "pulse.letter@zettains.ru",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": INSURANCE_URL,
+            "headers": insurance_headers,
+            "processor": zetta_pulse_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
         "name": "insurance_zetta",
         "rule": {
             "sender": "@zettains.ru",
@@ -285,6 +302,19 @@ rules = [
             "url": INSURANCE_URL,
             "headers": insurance_headers,
             "processor": sber_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
+        "name": "insurance_sberins_digital_assistant",
+        "rule": {
+            "sender": "digital.assistant@sberins.ru",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": INSURANCE_URL,
+            "headers": insurance_headers,
+            "processor": sber_digital_assistant_insurance_rule,
         },
         "attachment_field": True,
     },
