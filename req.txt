@@ -52,3 +52,5 @@ tzlocal==5.3.1
 xlrd==2.0.2
 xlsxwriter==3.2.5
 yarl==1.18.3
+./src/libs/pdf_text-0.1.0-cp312-cp312-manylinux_2_34_x86_64.whl
+./src/libs/zip_extractor-0.1.0-cp312-cp312-manylinux_2_34_x86_64.whl

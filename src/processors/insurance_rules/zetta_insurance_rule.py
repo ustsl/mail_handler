@@ -7,7 +7,7 @@ from src.processors.utils.form_data_finalize import \
     finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
-from src.processors.utils.zip_extractors import extract_first_file_from_zip
+from src.processors.utils.zip_extractors import extract_files_from_zip
 
 ZETTA_ZIP_PASSWORD = ",:nB-7mFN5"
 
@@ -59,6 +59,8 @@ def zetta_insurance_rule(
 
     if attachments:
         for filename, file_bytes in attachments:
+            if not isinstance(file_bytes, (bytes, bytearray)):
+                file_bytes = bytes(file_bytes)
             form_data.add_field(
                 "files",
                 file_bytes,
@@ -124,6 +126,8 @@ def zetta_pulse_insurance_rule(
 
     if attachments:
         for filename, file_bytes in attachments:
+            if not isinstance(file_bytes, (bytes, bytearray)):
+                file_bytes = bytes(file_bytes)
             form_data.add_field(
                 "files",
                 file_bytes,
@@ -140,19 +144,20 @@ def zetta_pulse_insurance_rule(
                     print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
             elif lowered_name.endswith(".zip"):
                 try:
-                    extracted = extract_first_file_from_zip(
+                    extracted_files = extract_files_from_zip(
                         file_bytes,
                         allowed_extensions=(".pdf",),
                         password=ZETTA_ZIP_PASSWORD,
                     )
-                    if extracted:
-                        inner_name, inner_bytes = extracted
+                    for inner_name, inner_bytes in extracted_files:
                         patient_info = _extract_patient_from_pdf(inner_bytes)
-                        if patient_info is None:
+                        if patient_info:
+                            patients_data.append(patient_info)
+                        else:
                             print(
                                 f"Не удалось извлечь данные из PDF внутри архива '{inner_name}'."
                             )
-                    else:
+                    if not extracted_files:
                         print(
                             f"Не найден PDF внутри ZIP '{filename}', обработка пропущена."
                         )

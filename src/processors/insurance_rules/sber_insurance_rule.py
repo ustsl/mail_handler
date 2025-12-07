@@ -11,7 +11,7 @@ from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.universal_search_table_func import \
     universal_search_table_func_v2
-from src.processors.utils.zip_extractors import extract_first_file_from_zip
+from src.processors.utils.zip_extractors import extract_files_from_zip
 
 
 def sber_insurance_rule(
@@ -193,10 +193,6 @@ def sber_ins_insurance_rule(
     return form_data
 
 
-def _generate_four_digit_passwords() -> list[str]:
-    return [f"{num:04d}" for num in range(10000)]
-
-
 def sber_digital_assistant_insurance_rule(
     content: str | None,
     subject: str,
@@ -221,15 +217,19 @@ def sber_digital_assistant_insurance_rule(
     patients_data: list[dict[str, str]] = []
 
     if attachments:
+        def _to_bytes(data: bytes | bytearray | list[int]) -> bytes:
+            return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+
         for filename, file_bytes in attachments:
-            form_data.add_field("files", file_bytes, filename=filename)
+            safe_file_bytes = _to_bytes(file_bytes)
+            form_data.add_field("files", safe_file_bytes, filename=filename)
 
             lowered_name = filename.lower()
 
             def _process_excel_bytes(data: bytes, source_name: str) -> None:
                 nonlocal patients_data
                 try:
-                    df = pd.read_excel(io.BytesIO(data), header=None)
+                    df = pd.read_excel(io.BytesIO(_to_bytes(data)), header=None)
                     patients = universal_search_table_func_v2(
                         df,
                         name_parts_headers=["Фамилия", "Имя", "Отчество"],
@@ -242,17 +242,16 @@ def sber_digital_assistant_insurance_rule(
                     )
 
             if lowered_name.endswith(".xlsx"):
-                _process_excel_bytes(file_bytes, filename)
+                _process_excel_bytes(safe_file_bytes, filename)
             elif lowered_name.endswith(".zip"):
-                extracted = extract_first_file_from_zip(
-                    file_bytes,
+                extracted_files = extract_files_from_zip(
+                    safe_file_bytes,
                     allowed_extensions=(".xls", ".xlsx"),
-                    password_candidates=_generate_four_digit_passwords(),
+                    pin_length=4,
                 )
-                if extracted:
-                    inner_name, inner_bytes = extracted
+                for inner_name, inner_bytes in extracted_files:
                     _process_excel_bytes(inner_bytes, inner_name)
-                else:
+                if not extracted_files:
                     print(
                         f"Не удалось извлечь Excel из ZIP '{filename}' для digital.assistant@sberins.ru"
                     )

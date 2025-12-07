@@ -11,8 +11,7 @@ from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.universal_search_table_func import \
     universal_search_table_func
-from src.processors.utils.zip_extractors import \
-    _extract_first_spreadsheet_from_zip
+from src.processors.utils.zip_extractors import extract_files_from_zip
 
 
 def rgs_insurance_rule(
@@ -40,6 +39,8 @@ def rgs_insurance_rule(
 
     if attachments:
         for filename, file_bytes in attachments:
+            if not isinstance(file_bytes, (bytes, bytearray)):
+                file_bytes = bytes(file_bytes)
             form_data.add_field(
                 "files",
                 file_bytes,
@@ -93,9 +94,12 @@ def rgs_insurance_rule(
                     print(f"Произошла ошибка при обработке файла {filename}: {e}")
 
             if lowered_name.endswith(".zip"):
-                extracted = _extract_first_spreadsheet_from_zip(file_bytes)
-                if extracted:
-                    inner_name, inner_bytes = extracted
+                extracted_files = extract_files_from_zip(
+                    file_bytes,
+                    allowed_extensions=(".xls", ".xlsx"),
+                    password="rgs",
+                )
+                for inner_name, inner_bytes in extracted_files:
                     try:
                         df = pd.read_excel(io.BytesIO(inner_bytes), header=None)
                         data = universal_search_table_func(
@@ -106,6 +110,8 @@ def rgs_insurance_rule(
                         print(
                             f"Произошла ошибка при обработке вложенного файла {inner_name}: {e}"
                         )
+                if not extracted_files:
+                    print(f"Не удалось извлечь таблицу из ZIP '{filename}'")
     finalize_and_add_patients_json(form_data, patients_data)
 
     return form_data
