@@ -7,7 +7,7 @@ from src.rules.apointment_rules import rules as appointment_rules
 from src.rules.insurance_rules import rules as insurance_rules
 from src.settings import appointment_mail_settings, insurance_mail_settings
 
-RETRY_DELAY = 60
+RETRY_DELAY = 30
 
 
 async def run_task(name, func, **kwargs):
