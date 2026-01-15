@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+
 from src.processors.insurance_rules.sovcom_insurance_rule import (
     sovcom_insurance_rule,
 )
