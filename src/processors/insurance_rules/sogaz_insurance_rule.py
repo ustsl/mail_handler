@@ -5,8 +5,8 @@ import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 
-from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
+from src.processors.utils.patient_chunker import finalize_and_chunk_patients
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 
 
@@ -15,7 +15,7 @@ def sogaz_insurance_rule(
     subject: str,
     sender: str,
     attachments: list[tuple[str, bytes]] | None,
-) -> FormData:
+) -> FormData | list[FormData]:
     form_data = FormData()
 
     cleaned_text = ""
@@ -92,35 +92,47 @@ def sogaz_insurance_rule(
                         print(
                             f"  > Заголовок найден в строке {header_row_index} файла '{filename}'. Начинаем сбор данных..."
                         )
+                        empty_streak = 0
                         for i in range(header_row_index + 1, len(df)):
                             data_row = df.iloc[i]
-                            first_cell_val = data_row.iloc[0]
-
-                            if (
-                                pd.isna(first_cell_val)
-                                or not str(first_cell_val).strip().isdigit()
-                            ):
-                                break
 
                             last_name = data_row.iloc[last_name_col_index]
                             first_name = data_row.iloc[first_name_col_index]
                             patronymic = data_row.iloc[patronymic_col_index]
                             policy_num = data_row.iloc[policy_num_col_index]
 
-                            if (
-                                pd.notna(last_name)
-                                and pd.notna(first_name)
-                                and pd.notna(patronymic)
-                                and pd.notna(policy_num)
+                            def _as_clean_str(value: object) -> str:
+                                if pd.isna(value):
+                                    return ""
+                                text = str(value).strip()
+                                return "" if text.lower() == "nan" else text
+
+                            last_name_s = _as_clean_str(last_name)
+                            first_name_s = _as_clean_str(first_name)
+                            patronymic_s = _as_clean_str(patronymic)
+                            policy_num_s = _as_clean_str(policy_num)
+
+                            if not any(
+                                (last_name_s, first_name_s, patronymic_s, policy_num_s)
                             ):
-                                full_name = f"{str(last_name).strip()} {str(first_name).strip()} {str(patronymic).strip()}"
+                                empty_streak += 1
+                                if empty_streak >= 50:
+                                    break
+                                continue
+
+                            empty_streak = 0
+                            if (
+                                last_name_s
+                                and first_name_s
+                                and patronymic_s
+                                and policy_num_s
+                            ):
+                                full_name = f"{last_name_s} {first_name_s} {patronymic_s}"
 
                                 patients_data.append(
                                     {
                                         "patient_name": full_name,
-                                        "insurance_policy_number": str(
-                                            policy_num
-                                        ).strip(),
+                                        "insurance_policy_number": policy_num_s,
                                     }
                                 )
                     else:
@@ -131,6 +143,4 @@ def sogaz_insurance_rule(
                 except Exception as e:
                     print(f"Произошла ошибка при обработке файла {filename}: {e}")
 
-    finalize_and_add_patients_json(form_data, patients_data)
-
-    return form_data
+    return finalize_and_chunk_patients(form_data, patients_data, chunk_size=200)

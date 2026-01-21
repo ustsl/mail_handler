@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from aiohttp import FormData
 from src.email_worker.lib.mail_client import MailClient
 from src.email_worker.lib.mail_parser import EmailParser
 from src.email_worker.schema import MailCheckSettings
@@ -42,6 +43,22 @@ async def apply_rule_action(
                 json_body=processed_body,
             )
             print("Задание (JSON) поставлено в очередь.")
+            return (True, url, None)
+
+        if (
+            isinstance(processed_body, list)
+            and processed_body
+            and all(isinstance(item, FormData) for item in processed_body)
+        ):
+            for index, chunk in enumerate(processed_body, start=1):
+                print(f"Отправка пациентов chunk {index}/{len(processed_body)} на {url}...")
+                response = await send_request(
+                    rule.action.type,
+                    url,
+                    headers=rule.action.headers,
+                    data=chunk,
+                )
+                print(f"  -> Ответ на chunk {index}: {response}")
             return (True, url, None)
 
         response = await send_request(

@@ -40,7 +40,7 @@ rules = [
             "type": INSURANCE_QUERY_TYPE,
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
-            "processor": akbars_insurance_rule,
+            "processor": sogaz_insurance_rule,
         },
         "attachment_field": True,
     },
