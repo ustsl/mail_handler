@@ -1,14 +1,28 @@
 import io
 import re
+from datetime import datetime
 
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 
-from src.processors.utils.form_data_finalize import \
-    finalize_and_add_patients_json
+from src.processors.utils.form_data_finalize import (
+    finalize_and_add_patients_json,
+)
 from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
+
+
+def _normalize_date(value: str) -> str | None:
+    """Convert Russian dd.mm.yyyy dates to ISO-8601 (YYYY-MM-DD)."""
+
+    text = value.strip()
+    for fmt in ("%d.%m.%Y", "%d.%m.%y"):
+        try:
+            return datetime.strptime(text, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
 
 
 def fix_encoding(text: str) -> str:
@@ -73,6 +87,16 @@ def ingosstrah_insurance_rule(
 
                         patient_fio = None
                         policy_number = None
+                        date_from = None
+                        date_to = None
+                        guaranty_match = re.search(
+                            r"Срок\s+действия(?:\s+гарантийного\s+письма)?\s+с\s+(\d{2}\.\d{2}\.\d{4})\s+по\s+(\d{2}\.\d{2}\.\d{4})",
+                            pdf_text,
+                            re.IGNORECASE,
+                        )
+                        if guaranty_match:
+                            date_from = _normalize_date(guaranty_match.group(1))
+                            date_to = _normalize_date(guaranty_match.group(2))
 
                         fio_pattern = (
                             r"№\s+Договора\s+ДМС\s*\n([\s\S]+?)\s*\d{2}\.\d{2}\.\d{4}"
@@ -92,12 +116,15 @@ def ingosstrah_insurance_rule(
                                 policy_number = policy_matches[-1]
 
                         if patient_fio and policy_number:
-                            patients_data.append(
-                                {
-                                    "patient_name": patient_fio,
-                                    "insurance_policy_number": policy_number,
-                                }
-                            )
+                            patient_obj = {
+                                "patient_name": patient_fio,
+                                "insurance_policy_number": policy_number,
+                            }
+                            if date_from:
+                                patient_obj["date_from"] = date_from
+                            if date_to:
+                                patient_obj["date_to"] = date_to
+                            patients_data.append(patient_obj)
                 except Exception as e:
                     print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
 

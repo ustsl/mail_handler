@@ -5,10 +5,39 @@ import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 
+from src.processors.utils.date_helpers import extract_date_range, normalize_date
 from src.processors.utils.form_data_finalize import \
     finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
+
+
+def _extract_vsk_dates(text: str) -> tuple[str | None, str | None]:
+    date_from, date_to = extract_date_range(
+        text,
+        r"действует\s*[cс]\s*(\d{2}\.\d{2}\.\d{4})\s*по\s*(\d{2}\.\d{2}\.\d{4})",
+        flags=re.IGNORECASE,
+    )
+
+    if not date_from or not date_to:
+        fallback = extract_date_range(
+            text,
+            r"Гарантийное письмо(?:\s+действительно)?:\s*с\s+(\d{2}\.\d{2}\.\d{4})\s*по\s*(\d{2}\.\d{2}\.\d{4})",
+            flags=re.IGNORECASE,
+        )
+        date_from = date_from or fallback[0]
+        date_to = date_to or fallback[1]
+
+    if not date_to:
+        to_match = re.search(
+            r"до\s+(\d{2}\.\d{2}\.\d{4})",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if to_match:
+            date_to = normalize_date(to_match.group(1))
+
+    return date_from, date_to
 
 
 def vsk_insurance_rule(
@@ -46,26 +75,36 @@ def vsk_insurance_rule(
                 try:
                     pdf_text = extract_text_from_pdf(file_bytes)
 
-                    fio_pattern = r"ФИО застрахованного лица\s+([\w\s]+?),"
-                    fio_match = re.search(fio_pattern, pdf_text)
+                    date_from, date_to = _extract_vsk_dates(pdf_text)
 
-                    policy_pattern = (
-                        r"Договор страхования \(полис\), срок\s*\n\s*действия\s+(\S+)"
-                    )
-                    policy_match = re.search(policy_pattern, pdf_text)
+                    fio_pattern = r"ФИО(?:\s+застрахованного\s+лица)?:\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+){1,2})"
+                    fio_match = re.search(fio_pattern, pdf_text)
+                    if not fio_match:
+                        fio_match = re.search(
+                            r"([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+){1,2})\s*,\s*[МЖ]",
+                            pdf_text,
+                        )
+
+                    policy_pattern = r"полис\),?\s*срок\s*действия\s+([A-Z0-9\-]+)"
+                    policy_match = re.search(policy_pattern, pdf_text, flags=re.IGNORECASE)
+                    if not policy_match:
+                        policy_match = re.search(r"\b([A-Z0-9]{4,}-\d{2,})\b", pdf_text)
 
                     if fio_match and policy_match:
                         patient_fio = fio_match.group(1).strip()
                         policy_number = policy_match.group(1).strip()
+                        patient_obj = {
+                            "patient_name": patient_fio,
+                            "insurance_policy_number": policy_number,
+                        }
+                        if date_from:
+                            patient_obj["date_from"] = date_from
+                        if date_to:
+                            patient_obj["date_to"] = date_to
                         print(
                             f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
                         )
-                        patients_data.append(
-                            {
-                                "patient_name": patient_fio,
-                                "insurance_policy_number": policy_number,
-                            }
-                        )
+                        patients_data.append(patient_obj)
 
                 except Exception as e:
                     print(f"Ошибка при обработке PDF-файла '{filename}': {e}")

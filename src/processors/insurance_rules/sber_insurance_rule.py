@@ -5,13 +5,33 @@ import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 
-from src.processors.utils.form_data_finalize import \
-    finalize_and_add_patients_json
+from src.processors.utils.form_data_finalize import finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 from src.processors.utils.universal_search_table_func import \
     universal_search_table_func_v2
 from src.processors.utils.zip_extractors import extract_files_from_zip
+from src.processors.utils.date_helpers import (
+    extract_date_range,
+    normalize_date,
+)
+def _extract_policy_dates(text: str) -> tuple[str | None, str | None]:
+    count_from, count_to = extract_date_range(
+        text,
+        r"Гарантийное письмо(?:\s+действительно)?:\s*с\s+(\d{2}\.\d{2}\.\d{4})\s+по\s+(\d{2}\.\d{2}\.\d{4})",
+        flags=re.IGNORECASE,
+    )
+
+    if not count_to:
+        to_match = re.search(
+            r"Действует до\s+([\d\.]+\s*[А-Яа-я]+?\s*\d{4})",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if to_match:
+            count_to = normalize_date(to_match.group(1))
+
+    return count_from, count_to
 
 
 def sber_insurance_rule(
@@ -45,59 +65,59 @@ def sber_insurance_rule(
                 filename=filename,
             )
 
-        if filename.lower().endswith(".pdf"):
-            try:
-                pdf_text = extract_text_from_pdf(file_bytes)
+            if filename.lower().endswith(".pdf"):
+                try:
+                    pdf_text = extract_text_from_pdf(file_bytes)
+                except Exception as e:
+                    print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
+                    continue
 
-                # Ищем ФИО
+                date_from, date_to = _extract_policy_dates(pdf_text)
+
                 fio_pattern = r"ФИО:\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+){1,2})"
                 fio_match = re.search(fio_pattern, pdf_text)
-
-                # Ищем номер полиса (ID)
                 policy_pattern = r"Номер\s+ID\s*\(полис\):\s*(\S+)"
                 policy_match = re.search(policy_pattern, pdf_text)
 
                 if fio_match and policy_match:
                     patient_fio = fio_match.group(1).strip()
                     policy_number = policy_match.group(1).strip()
+                    patient_obj = {
+                        "patient_name": patient_fio,
+                        "insurance_policy_number": policy_number,
+                    }
+                    if date_from:
+                        patient_obj["date_from"] = date_from
+                    if date_to:
+                        patient_obj["date_to"] = date_to
                     print(
                         f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
                     )
-                    patients_data.append(
-                        {
-                            "patient_name": patient_fio,
-                            "insurance_policy_number": policy_number,
-                        }
-                    )
+                    patients_data.append(patient_obj)
                 else:
-                    print(f"В файле '{filename}' не удалось найти ФИО или полис")
-
-            except Exception as e:
-                print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
-                try:
-                    pdf_text = extract_text_from_pdf(file_bytes)
-
-                    fio_pattern = r"([А-ЯЁ]{2,}\s[А-ЯЁ]{2,}\s[А-ЯЁ]{2,})"
-                    fio_match = re.search(fio_pattern, pdf_text)
-
-                    policy_pattern = r"Номер полиса\s*(\S+)"
-                    policy_match = re.search(policy_pattern, pdf_text)
-
-                    if fio_match and policy_match:
-                        patient_fio = fio_match.group(1).strip()
-                        policy_number = policy_match.group(1).strip()
-                        print(
-                            f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
-                        )
-                        patients_data.append(
-                            {
+                    try:
+                        fallback_pdf_text = extract_text_from_pdf(file_bytes)
+                        fio_pattern = r"([А-ЯЁ]{2,}\s[А-ЯЁ]{2,}\s[А-ЯЁ]{2,})"
+                        fio_match = re.search(fio_pattern, fallback_pdf_text)
+                        policy_pattern = r"Номер полиса\s*(\S+)"
+                        policy_match = re.search(policy_pattern, fallback_pdf_text)
+                        if fio_match and policy_match:
+                            patient_fio = fio_match.group(1).strip()
+                            policy_number = policy_match.group(1).strip()
+                            patient_obj = {
                                 "patient_name": patient_fio,
                                 "insurance_policy_number": policy_number,
                             }
-                        )
-
-                except Exception as e:
-                    print(f"Ошибка при обработке PDF-файла '{filename}': {e}")
+                            if date_to:
+                                patient_obj["date_to"] = date_to
+                            print(
+                                f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
+                            )
+                            patients_data.append(patient_obj)
+                        else:
+                            print(f"В файле '{filename}' не удалось найти ФИО или полис")
+                    except Exception as exc:
+                        print(f"Ошибка при обработке PDF-файла '{filename}': {exc}")
 
     finalize_and_add_patients_json(form_data, patients_data)
 

@@ -11,6 +11,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.processors.insurance_rules.akbars_insurance_rule import (
     akbars_insurance_rule,
 )
+from src.processors.insurance_rules.renins_pult_insurance_rule import (
+    renins_pult_insurance_rule,
+)
+from src.processors.insurance_rules.renins_insurance_rule import renins_insurance_rule
 
 
 def _print_form_data(form_data: Any) -> None:
@@ -24,9 +28,7 @@ def _print_form_data(form_data: Any) -> None:
 
 def main() -> int:
     doc_path = (
-        Path(sys.argv[1])
-        if len(sys.argv) > 1
-        else Path(__file__).with_name("test.doc")
+        Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).with_name("test.doc")
     )
     if not doc_path.exists():
         print(f"File not found: {doc_path}", file=sys.stderr)
@@ -34,7 +36,7 @@ def main() -> int:
 
     doc_bytes = doc_path.read_bytes()
 
-    form_data = akbars_insurance_rule(
+    form_data = renins_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",

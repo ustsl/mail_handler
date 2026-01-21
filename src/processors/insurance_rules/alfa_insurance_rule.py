@@ -4,6 +4,7 @@ from aiohttp import FormData
 from bs4 import BeautifulSoup
 from striprtf.striprtf import rtf_to_text
 
+from src.processors.utils.date_helpers import extract_date_range
 from src.processors.utils.form_data_finalize import \
     finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
@@ -57,16 +58,25 @@ def alfa_insurance_rule(
                     patient_fio = extract_data(fio_pattern, plain_text)
                     policy_number = extract_data(policy_pattern, plain_text)
 
+                    date_from, date_to = extract_date_range(
+                        plain_text,
+                        r"Срок\s+действия\s+полиса\s+с\s+(\d{2}\.\d{2}\.\d{4})\s+по\s+(\d{2}\.\d{2}\.\d{4})",
+                        flags=re.IGNORECASE,
+                    )
+
                     if patient_fio != "не найдено" and policy_number != "не найдено":
                         print(
                             f"Из RTF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
                         )
-                        patients_data.append(
-                            {
-                                "patient_name": patient_fio,
-                                "insurance_policy_number": policy_number,
-                            }
-                        )
+                        patient_obj = {
+                            "patient_name": patient_fio,
+                            "insurance_policy_number": policy_number,
+                        }
+                        if date_from:
+                            patient_obj["date_from"] = date_from
+                        if date_to:
+                            patient_obj["date_to"] = date_to
+                        patients_data.append(patient_obj)
 
                 except Exception as e:
                     print(f"Ошибка при обработке RTF-файла '{filename}': {e}")

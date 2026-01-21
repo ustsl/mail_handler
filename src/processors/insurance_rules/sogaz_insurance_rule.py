@@ -1,10 +1,12 @@
 import io
+
 import re
 
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 
+from src.processors.utils.date_helpers import extract_date_range
 from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.patient_chunker import finalize_and_chunk_patients
 from src.processors.utils.pdf_parser import extract_text_from_pdf
@@ -40,6 +42,8 @@ def sogaz_insurance_rule(
                 if pdf_text:
                     patient_fio = ""
                     policy_number = ""
+                    date_from = None
+                    date_to = None
                     patient_block_match = re.search(
                         r"Застрахованный(.*?)Гарантируем", pdf_text, re.DOTALL
                     )
@@ -56,12 +60,31 @@ def sogaz_insurance_rule(
                         policy_match = re.search(policy_pattern, patient_block_text)
                         if policy_match:
                             policy_number = policy_match.group(1).strip()
-                    patients_data.append(
-                        {
-                            "patient_name": str(patient_fio),
-                            "insurance_policy_number": str(policy_number),
-                        }
-                    )
+                    if not date_from or not date_to:
+                        range_match = extract_date_range(
+                            pdf_text,
+                            r"Срок\s+действия(?:\s+гарантийного\s+письма)?\s*(?:[^\\n]+?)?\s*с\s+(\d{2}\.\d{2}\.\d{4})\s+(?:по|до)\s+(\d{2}\.\d{2}\.\d{4})",
+                            flags=re.IGNORECASE,
+                        )
+                        date_from = date_from or range_match[0]
+                        date_to = date_to or range_match[1]
+                    if not date_from or not date_to:
+                        fallback_match = extract_date_range(
+                            pdf_text,
+                            r"с\s+(\d{2}\.\d{2}\.\d{4})\s+(?:по|до)\s+(\d{2}\.\d{2}\.\d{4})",
+                            flags=re.IGNORECASE,
+                        )
+                        date_from = date_from or fallback_match[0]
+                        date_to = date_to or fallback_match[1]
+                    patient_obj = {
+                        "patient_name": str(patient_fio),
+                        "insurance_policy_number": str(policy_number),
+                    }
+                    if date_from:
+                        patient_obj["date_from"] = date_from
+                    if date_to:
+                        patient_obj["date_to"] = date_to
+                    patients_data.append(patient_obj)
 
             if filename.lower().endswith((".xls", ".xlsx")):
                 try:

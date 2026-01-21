@@ -1,17 +1,19 @@
+from __future__ import annotations
+
 import json
 import sys
 from pathlib import Path
 from typing import Any
 
+from striprtf.striprtf import rtf_to_text
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.processors.insurance_rules.vsk_insurance_rule import (
-    vsk_insurance_rule,
+from src.processors.insurance_rules.alfa_insurance_rule import (
+    alfa_insurance_rule,
 )
-from src.processors.insurance_rules.sogaz_insurance_rule import sogaz_insurance_rule
-from src.processors.utils.pdf_parser import extract_text_from_pdf
 
 
 def _print_form_data(form_data: Any) -> None:
@@ -22,27 +24,38 @@ def _print_form_data(form_data: Any) -> None:
             print(payload)
             try:
                 decoded = json.loads(payload)
-                print("Итог по правилу vsk:", len(decoded), "записей")
+                print("Итог по правилу alfa:", len(decoded), "записей")
             except Exception as exc:
                 print("Не удалось посчитать записи:", exc)
             return
     print("patients_info_json not found")
 
 
+def _render_rtf(file_bytes: bytes) -> str:
+    try:
+        decoded = file_bytes.decode("cp1251")
+    except UnicodeDecodeError:
+        decoded = file_bytes.decode("utf-8", errors="ignore")
+    try:
+        return rtf_to_text(decoded)
+    except Exception:
+        return decoded
+
+
 def main() -> None:
-    pdf_path = (
-        Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).with_name("test.PDF")
+    rtf_path = (
+        Path(sys.argv[1])
+        if len(sys.argv) > 1
+        else Path(__file__).with_name("test.rtf")
     )
-    file_bytes = pdf_path.read_bytes()
-    pdf_text = extract_text_from_pdf(file_bytes)
+    file_bytes = rtf_path.read_bytes()
+    print(_render_rtf(file_bytes))
 
-    print(pdf_text)
-
-    form_data = sogaz_insurance_rule(
+    form_data = alfa_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",
-        attachments=[(pdf_path.name, file_bytes)],
+        attachments=[(rtf_path.name, file_bytes)],
     )
     _print_form_data(form_data)
 
