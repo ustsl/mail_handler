@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
+from src.processors.insurance_rules.kaplife_insurance_rule import kaplife_insurance_rule
 from src.processors.insurance_rules.vsk_insurance_rule import (
     vsk_insurance_rule,
 )
@@ -38,7 +39,7 @@ def main() -> None:
 
     print(pdf_text)
 
-    form_data = sogaz_insurance_rule(
+    form_data = kaplife_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",

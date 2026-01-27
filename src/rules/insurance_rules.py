@@ -10,6 +10,9 @@ from src.processors.insurance_rules.energogarant_insurance_rule import (
 from src.processors.insurance_rules.ingos_insurance_rule import (
     ingosstrah_insurance_rule,
 )
+from src.processors.insurance_rules.kaplife_insurance_rule import (
+    kaplife_insurance_rule,
+)
 from src.processors.insurance_rules.luchi_insurance_rule import luchi_insurance_rule
 from src.processors.insurance_rules.renins_insurance_rule import renins_insurance_rule
 from src.processors.insurance_rules.reso_insurance_rule import reso_insurance_rule
@@ -146,6 +149,19 @@ rules = [
             "url": INSURANCE_URL,
             "headers": insurance_headers,
             "processor": sovcom_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
+        "name": "insurance_kaplife",
+        "rule": {
+            "sender": "@kaplife.ru",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": INSURANCE_URL,
+            "headers": insurance_headers,
+            "processor": kaplife_insurance_rule,
         },
         "attachment_field": True,
     },
