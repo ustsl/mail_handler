@@ -11,6 +11,9 @@ from src.processors.insurance_rules.kaplife_insurance_rule import kaplife_insura
 from src.processors.insurance_rules.vsk_insurance_rule import (
     vsk_insurance_rule,
 )
+from src.processors.insurance_rules.renhealth_insurance_rule import (
+    renhealth_insurance_rule,
+)
 from src.processors.insurance_rules.sogaz_insurance_rule import sogaz_insurance_rule
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 
@@ -23,7 +26,7 @@ def _print_form_data(form_data: Any) -> None:
             print(payload)
             try:
                 decoded = json.loads(payload)
-                print("Итог по правилу vsk:", len(decoded), "записей")
+                print("Итог по правилу:", len(decoded), "записей")
             except Exception as exc:
                 print("Не удалось посчитать записи:", exc)
             return
@@ -39,7 +42,7 @@ def main() -> None:
 
     print(pdf_text)
 
-    form_data = kaplife_insurance_rule(
+    form_data = renhealth_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",

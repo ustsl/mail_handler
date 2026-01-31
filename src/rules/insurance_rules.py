@@ -14,6 +14,9 @@ from src.processors.insurance_rules.kaplife_insurance_rule import (
     kaplife_insurance_rule,
 )
 from src.processors.insurance_rules.luchi_insurance_rule import luchi_insurance_rule
+from src.processors.insurance_rules.renhealth_insurance_rule import (
+    renhealth_insurance_rule,
+)
 from src.processors.insurance_rules.renins_insurance_rule import renins_insurance_rule
 from src.processors.insurance_rules.reso_insurance_rule import reso_insurance_rule
 from src.processors.insurance_rules.rgs_insurance_rule import rgs_insurance_rule
@@ -33,6 +36,7 @@ from src.processors.insurance_rules.zetta_insurance_rule import (
 from src.query_worker.schema import QueryRules
 from src.settings import INSURANCE_QUERY_TYPE, INSURANCE_URL, insurance_headers
 
+
 rules = [
     {
         "name": "insurance_imvo_renins_pult",
@@ -44,6 +48,19 @@ rules = [
             "url": f"{INSURANCE_URL}",
             "headers": insurance_headers,
             "processor": sogaz_insurance_rule,
+        },
+        "attachment_field": True,
+    },
+    {
+        "name": "renhealth",
+        "rule": {
+            "sender": "@renhealth.com",
+        },
+        "action": {
+            "type": INSURANCE_QUERY_TYPE,
+            "url": f"{INSURANCE_URL}",
+            "headers": insurance_headers,
+            "processor": renhealth_insurance_rule,
         },
         "attachment_field": True,
     },
