@@ -16,6 +16,7 @@ from src.processors.insurance_rules.renhealth_insurance_rule import (
 )
 from src.processors.insurance_rules.sogaz_insurance_rule import sogaz_insurance_rule
 from src.processors.utils.pdf_parser import extract_text_from_pdf
+from src.processors.insurance_rules.luchi_insurance_rule import luchi_insurance_rule
 
 
 def _print_form_data(form_data: Any) -> None:
@@ -42,7 +43,7 @@ def main() -> None:
 
     print(pdf_text)
 
-    form_data = renhealth_insurance_rule(
+    form_data = luchi_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",

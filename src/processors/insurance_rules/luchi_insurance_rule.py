@@ -9,7 +9,33 @@ from bs4 import BeautifulSoup
 from src.processors.utils.form_data_finalize import \
     finalize_and_add_patients_json
 from src.processors.utils.formatters import clean_message_text
+from src.processors.utils.date_helpers import extract_date_range
 from src.processors.utils.pdf_parser import extract_text_from_pdf
+
+
+def _extract_luchi_dates(text: str) -> tuple[str | None, str | None]:
+    date_from, date_to = extract_date_range(
+        text,
+        r"Срок действия полиса:\s*[сc]\s*(\d{2}\.\d{2}\.\d{2,4})\s*по\s*(\d{2}\.\d{2}\.\d{2,4})",
+        flags=re.IGNORECASE,
+    )
+    if not date_from or not date_to:
+        fallback = extract_date_range(
+            text,
+            r"Гарантийное письмо\s+действительно\s*[сc]\s*(\d{2}\.\d{2}\.\d{2,4})\s*по\s*(\d{2}\.\d{2}\.\d{2,4})",
+            flags=re.IGNORECASE,
+        )
+        date_from = date_from or fallback[0]
+        date_to = date_to or fallback[1]
+    if not date_from or not date_to:
+        generic = extract_date_range(
+            text,
+            r"\b[сc]\s*(\d{2}\.\d{2}\.\d{2,4})\s*по\s*(\d{2}\.\d{2}\.\d{2,4})",
+            flags=re.IGNORECASE,
+        )
+        date_from = date_from or generic[0]
+        date_to = date_to or generic[1]
+    return date_from, date_to
 
 
 def luchi_insurance_rule(
@@ -53,27 +79,36 @@ def luchi_insurance_rule(
                     if pdf_text:
                         patient_fio = ""
                         policy_number = ""
+                        date_from = None
+                        date_to = None
 
                         fio_pattern = r"Пациент:\s*(.*?)\n"
                         fio_match = re.search(fio_pattern, pdf_text)
                         if fio_match:
                             patient_fio = fio_match.group(1).strip()
 
-                        policy_pattern = r"Номер полиса:\s*(\d+)"
+                        policy_pattern = r"Номер полиса:\s*([^\n]+)"
                         policy_match = re.search(policy_pattern, pdf_text)
                         if policy_match:
-                            policy_number = policy_match.group(1).strip()
+                            policy_number = re.sub(
+                                r"\s+", " ", policy_match.group(1)
+                            ).strip()
+
+                        date_from, date_to = _extract_luchi_dates(pdf_text)
 
                         if patient_fio and policy_number:
+                            patient_obj = {
+                                "patient_name": patient_fio,
+                                "insurance_policy_number": policy_number,
+                            }
+                            if date_from:
+                                patient_obj["date_from"] = date_from
+                            if date_to:
+                                patient_obj["date_to"] = date_to
                             print(
                                 f"Из PDF '{filename}' извлечено: ФИО='{patient_fio}', Полис='{policy_number}'"
                             )
-                            patients_data.append(
-                                {
-                                    "patient_name": patient_fio,
-                                    "insurance_policy_number": policy_number,
-                                }
-                            )
+                            patients_data.append(patient_obj)
                         else:
                             print(
                                 f"В PDF '{filename}' не удалось найти ФИО и/или Полис."

@@ -15,6 +15,7 @@ from src.processors.insurance_rules.renins_pult_insurance_rule import (
     renins_pult_insurance_rule,
 )
 from src.processors.insurance_rules.renins_insurance_rule import renins_insurance_rule
+from src.processors.insurance_rules.luchi_insurance_rule import luchi_insurance_rule
 
 
 def _print_form_data(form_data: Any) -> None:
@@ -36,7 +37,7 @@ def main() -> int:
 
     doc_bytes = doc_path.read_bytes()
 
-    form_data = renins_insurance_rule(
+    form_data = luchi_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",
