@@ -4,12 +4,16 @@ from typing import Dict, Optional
 import aio_pika
 
 from src.outbox.infra import EXCHANGE_MAIN, ROUTING_MAIN, ensure_infra
+from src.outbox.rabbit import connect_rabbitmq
 from src.settings import RABBIT_URL
 
 
 async def enqueue_json_request(
     method: str, url: str, headers: Optional[Dict[str, str]], json_body: Dict
 ) -> None:
+    if not RABBIT_URL:
+        return
+
     payload = {
         "kind": "json",
         "method": method,
@@ -19,7 +23,7 @@ async def enqueue_json_request(
         "retry_count": 0,
     }
 
-    conn = await aio_pika.connect(RABBIT_URL)
+    conn = await connect_rabbitmq()
     async with conn:
         ch = await conn.channel(publisher_confirms=True)
         await ensure_infra(ch)

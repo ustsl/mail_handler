@@ -1,11 +1,13 @@
+import asyncio
 import json
 import os
+from contextlib import suppress
 
 import aio_pika
 
-from src.outbox.infra import (BACKOFF_SCHEDULE, EXCHANGE_DLX, EXCHANGE_MAIN,
-                              QUEUE_MAIN, ROUTING_MAIN, ensure_infra,
-                              rkey_retry)
+from src.outbox.infra import (BACKOFF_SCHEDULE, EXCHANGE_DLX, QUEUE_MAIN,
+                              ensure_infra, rkey_retry)
+from src.outbox.rabbit import connect_rabbitmq
 from src.query_worker.request_sender import send_request
 from src.settings import RABBIT_URL
 
@@ -49,11 +51,29 @@ async def _handle(msg: aio_pika.IncomingMessage) -> None:
             await _republish_retry(msg.channel, payload)
 
 
+async def run_consumer(stop_event: asyncio.Event | None = None) -> None:
+    if not RABBIT_URL:
+        return
+
+    conn: aio_pika.RobustConnection | None = None
+    try:
+        conn = await connect_rabbitmq()
+        async with conn:
+            ch = await conn.channel()
+            await ensure_infra(ch)
+            q = await ch.get_queue(QUEUE_MAIN)
+            await q.consume(_handle, no_ack=False)
+            if stop_event is None:
+                await asyncio.Future()
+            else:
+                await stop_event.wait()
+    except asyncio.CancelledError:
+        raise
+    finally:
+        if conn is not None and not conn.is_closed:
+            with suppress(Exception):
+                await conn.close()
+
+
 async def main() -> None:
-    conn = await aio_pika.connect(RABBIT_URL)
-    async with conn:
-        ch = await conn.channel()
-        await ensure_infra(ch)
-        q = await ch.get_queue(QUEUE_MAIN)
-        await q.consume(_handle, no_ack=False)
-        await __import__("asyncio").Future()
+    await run_consumer()
