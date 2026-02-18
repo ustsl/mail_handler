@@ -59,7 +59,7 @@ def main() -> int:
 
     xls_bytes = xls_path.read_bytes()
 
-    form_data = renins_insurance_rule(
+    form_data = sogaz_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",

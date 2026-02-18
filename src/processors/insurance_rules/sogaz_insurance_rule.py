@@ -6,7 +6,7 @@ import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 
-from src.processors.utils.date_helpers import extract_date_range
+from src.processors.utils.date_helpers import extract_date_range, normalize_date
 from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.patient_chunker import finalize_and_chunk_patients
 from src.processors.utils.pdf_parser import extract_text_from_pdf
@@ -95,6 +95,8 @@ def sogaz_insurance_rule(
                     first_name_col_index = -1
                     patronymic_col_index = -1
                     policy_num_col_index = -1
+                    date_from_col_index = -1
+                    date_to_col_index = -1
 
                     required_headers = {"Фамилия", "Имя", "Отчество", "№ полиса"}
 
@@ -109,6 +111,14 @@ def sogaz_insurance_rule(
                             first_name_col_index = header_list.index("Имя")
                             patronymic_col_index = header_list.index("Отчество")
                             policy_num_col_index = header_list.index("№ полиса")
+                            if "Начало обслуживания" in header_list:
+                                date_from_col_index = header_list.index(
+                                    "Начало обслуживания"
+                                )
+                            if "Окончание обслуживания" in header_list:
+                                date_to_col_index = header_list.index(
+                                    "Окончание обслуживания"
+                                )
                             break
 
                     if header_row_index != -1:
@@ -123,6 +133,16 @@ def sogaz_insurance_rule(
                             first_name = data_row.iloc[first_name_col_index]
                             patronymic = data_row.iloc[patronymic_col_index]
                             policy_num = data_row.iloc[policy_num_col_index]
+                            date_from_raw = (
+                                data_row.iloc[date_from_col_index]
+                                if date_from_col_index != -1
+                                else None
+                            )
+                            date_to_raw = (
+                                data_row.iloc[date_to_col_index]
+                                if date_to_col_index != -1
+                                else None
+                            )
 
                             def _as_clean_str(value: object) -> str:
                                 if pd.isna(value):
@@ -134,6 +154,10 @@ def sogaz_insurance_rule(
                             first_name_s = _as_clean_str(first_name)
                             patronymic_s = _as_clean_str(patronymic)
                             policy_num_s = _as_clean_str(policy_num)
+                            date_from_s = _as_clean_str(date_from_raw)
+                            date_to_s = _as_clean_str(date_to_raw)
+                            date_from = normalize_date(date_from_s) if date_from_s else None
+                            date_to = normalize_date(date_to_s) if date_to_s else None
 
                             if not any(
                                 (last_name_s, first_name_s, patronymic_s, policy_num_s)
@@ -151,13 +175,15 @@ def sogaz_insurance_rule(
                                 and policy_num_s
                             ):
                                 full_name = f"{last_name_s} {first_name_s} {patronymic_s}"
-
-                                patients_data.append(
-                                    {
-                                        "patient_name": full_name,
-                                        "insurance_policy_number": policy_num_s,
-                                    }
-                                )
+                                patient_obj = {
+                                    "patient_name": full_name,
+                                    "insurance_policy_number": policy_num_s,
+                                }
+                                if date_from:
+                                    patient_obj["date_from"] = date_from
+                                if date_to:
+                                    patient_obj["date_to"] = date_to
+                                patients_data.append(patient_obj)
                     else:
                         print(
                             f"  > В файле {filename} не найдена таблица с пациентами (не найдены заголовки)."

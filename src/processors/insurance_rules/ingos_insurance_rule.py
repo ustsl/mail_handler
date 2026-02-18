@@ -1,11 +1,11 @@
 import io
 import re
-from datetime import datetime
 
 import pandas as pd
 from aiohttp import FormData
 from bs4 import BeautifulSoup
 
+from src.processors.utils.date_helpers import extract_date_range
 from src.processors.utils.form_data_finalize import (
     finalize_and_add_patients_json,
 )
@@ -13,16 +13,27 @@ from src.processors.utils.formatters import clean_message_text
 from src.processors.utils.pdf_parser import extract_text_from_pdf
 
 
-def _normalize_date(value: str) -> str | None:
-    """Convert Russian dd.mm.yyyy dates to ISO-8601 (YYYY-MM-DD)."""
+def _extract_ingos_pdf_patients(pdf_text: str) -> list[tuple[str, str]]:
+    table_match = re.search(
+        r"ФИО\s+Дата\s*[\r\n]+\s*рождения\s+№\s*Полиса\s+Страхователь\s+№\s*Договора\s*ДМС\s*([\s\S]+?)(?:\n\s*Оплата|\n\s*Жалобы:|\Z)",
+        pdf_text,
+        re.IGNORECASE,
+    )
+    search_area = table_match.group(1) if table_match else pdf_text
 
-    text = value.strip()
-    for fmt in ("%d.%m.%Y", "%d.%m.%y"):
-        try:
-            return datetime.strptime(text, fmt).strftime("%Y-%m-%d")
-        except ValueError:
-            continue
-    return None
+    row_pattern = re.compile(
+        r"([А-ЯЁ][А-ЯЁ\-]+(?:\s+[А-ЯЁ][А-ЯЁ\-]+){1,2})\s+(\d{2}\.\d{2}\.\d{4})\s+([A-Za-zА-Яа-яЁё0-9][A-Za-zА-Яа-яЁё0-9/.-]*)",
+        re.MULTILINE,
+    )
+
+    patients: list[tuple[str, str]] = []
+    for match in row_pattern.finditer(search_area):
+        patient_name = " ".join(match.group(1).split()).strip()
+        policy_number = match.group(3).strip()
+        if patient_name and policy_number:
+            patients.append((patient_name, policy_number))
+
+    return patients
 
 
 def fix_encoding(text: str) -> str:
@@ -84,41 +95,49 @@ def ingosstrah_insurance_rule(
                     pdf_text = extract_text_from_pdf(file_bytes)
 
                     if pdf_text:
-
-                        patient_fio = None
-                        policy_number = None
                         date_from = None
                         date_to = None
-                        guaranty_match = re.search(
-                            r"Срок\s+действия(?:\s+гарантийного\s+письма)?\s+с\s+(\d{2}\.\d{2}\.\d{4})\s+по\s+(\d{2}\.\d{2}\.\d{4})",
+                        date_from, date_to = extract_date_range(
                             pdf_text,
+                            r"Срок\s+действия(?:\s+гарантийного\s+письма)?\s+с\s+(\d{2}\.\d{2}\.\d{4})\s+по\s+(\d{2}\.\d{2}\.\d{4})",
                             re.IGNORECASE,
                         )
-                        if guaranty_match:
-                            date_from = _normalize_date(guaranty_match.group(1))
-                            date_to = _normalize_date(guaranty_match.group(2))
+                        if not date_from or not date_to:
+                            fallback_range = extract_date_range(
+                                pdf_text,
+                                r"с\s+(\d{2}\.\d{2}\.\d{4})\s+(?:по|до)\s+(\d{2}\.\d{2}\.\d{4})",
+                                flags=re.IGNORECASE,
+                            )
+                            date_from = date_from or fallback_range[0]
+                            date_to = date_to or fallback_range[1]
 
-                        fio_pattern = (
-                            r"№\s+Договора\s+ДМС\s*\n([\s\S]+?)\s*\d{2}\.\d{2}\.\d{4}"
-                        )
-                        fio_match = re.search(fio_pattern, pdf_text)
-
-                        if fio_match:
-                            patient_fio = fio_match.group(1).replace("\n", " ").strip()
-
-                        end_marker = "Оплата будет"
-                        end_marker_pos = pdf_text.find(end_marker)
-
-                        if end_marker_pos != -1:
-                            search_area = pdf_text[:end_marker_pos]
-                            policy_matches = re.findall(r"\b(\d+-\d+)\b", search_area)
-                            if policy_matches:
-                                policy_number = policy_matches[-1]
-
-                        if patient_fio and policy_number:
+                        parsed_patients = _extract_ingos_pdf_patients(pdf_text)
+                        for patient_fio, policy_number in parsed_patients:
                             patient_obj = {
                                 "patient_name": patient_fio,
                                 "insurance_policy_number": policy_number,
+                            }
+                            if date_from:
+                                patient_obj["date_from"] = date_from
+                            if date_to:
+                                patient_obj["date_to"] = date_to
+                            patients_data.append(patient_obj)
+                        if parsed_patients:
+                            continue
+
+                        fio_match = re.search(
+                            r"ФИО:\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+){1,2})",
+                            pdf_text,
+                        )
+                        policy_match = re.search(
+                            r"(?:№\s*Полиса|Полис(?:\s*№)?)\s*[:\-]?\s*([A-Za-zА-Яа-яЁё0-9/.-]+)",
+                            pdf_text,
+                            re.IGNORECASE,
+                        )
+                        if fio_match and policy_match:
+                            patient_obj = {
+                                "patient_name": fio_match.group(1).strip(),
+                                "insurance_policy_number": policy_match.group(1).strip(),
                             }
                             if date_from:
                                 patient_obj["date_from"] = date_from
