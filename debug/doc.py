@@ -37,7 +37,7 @@ def main() -> int:
 
     doc_bytes = doc_path.read_bytes()
 
-    form_data = luchi_insurance_rule(
+    form_data = renins_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",
