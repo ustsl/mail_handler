@@ -11,9 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.processors.insurance_rules.alfa_insurance_rule import (
-    alfa_insurance_rule,
-)
+from src.processors.insurance_rules.reso_insurance_rule import reso_insurance_rule
 
 
 def _print_form_data(form_data: Any) -> None:
@@ -24,7 +22,7 @@ def _print_form_data(form_data: Any) -> None:
             print(payload)
             try:
                 decoded = json.loads(payload)
-                print("Итог по правилу alfa:", len(decoded), "записей")
+                print("Итог по правилу reso:", len(decoded), "записей")
             except Exception as exc:
                 print("Не удалось посчитать записи:", exc)
             return
@@ -44,14 +42,12 @@ def _render_rtf(file_bytes: bytes) -> str:
 
 def main() -> None:
     rtf_path = (
-        Path(sys.argv[1])
-        if len(sys.argv) > 1
-        else Path(__file__).with_name("test.rtf")
+        Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).with_name("test.rtf")
     )
     file_bytes = rtf_path.read_bytes()
     print(_render_rtf(file_bytes))
 
-    form_data = alfa_insurance_rule(
+    form_data = reso_insurance_rule(
         content=None,
         subject="test",
         sender="debug@example.local",
